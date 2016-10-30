@@ -19,12 +19,11 @@ http://tensorflow.org/tutorials/mnist/beginners/index.md
 """
 """Our experiments are based on the code in github:
 https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/tutorials/mnist/mnist_softmax.py
-
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# from __future__ import absolute_import
+# from __future__ import division
+# from __future__ import print_function
 
 import argparse
 import sys
