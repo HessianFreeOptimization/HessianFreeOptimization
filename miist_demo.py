@@ -153,6 +153,7 @@ def train():
 		# then you will not be able to use built-in optimizers like SGD or Adam any more;
 		train_step = optimizer_def.apply_gradients(gvs)
 
+
 	with tf.name_scope('accuracy'):
 		with tf.name_scope('correct_prediction'):
 			correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
@@ -183,14 +184,15 @@ def train():
 
 	for i in range(FLAGS.max_steps):
 		if i % 10 == 0:  # Record summaries and test-set accuracy
-			summary, acc = sess.run([merged, accuracy], feed_dict=feed_dict(False))
+			summary, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
+			print '----- Cross_entropy_output: %f'%cross_entropy_output
 			test_writer.add_summary(summary, i)
 			print('Accuracy at step %s: %s' % (i, acc))
 		else:  # Record train set summaries, and train
 			if i % 100 == 99:  # Record execution stats
 				run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
 				run_metadata = tf.RunMetadata()
-				summary, _ = sess.run([merged, train_step],
+				summary, _= sess.run([merged, train_step],
 															feed_dict=feed_dict(True),
 															options=run_options,
 															run_metadata=run_metadata)
