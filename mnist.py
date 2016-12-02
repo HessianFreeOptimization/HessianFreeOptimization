@@ -1,14 +1,9 @@
 #  https://github.com/tensorflow/tensorflow/edit/master/tensorflow/examples/learn/mnist.py
+#  https://www.tensorflow.org/versions/master/tutorials/mnist/pros/index.html#deep-mnist-for-experts
 
-"""This showcases how simple it is to build image classification networks.
-
-It follows description from this TensorFlow tutorial:
-    https://www.tensorflow.org/versions/master/tutorials/mnist/pros/index.html#deep-mnist-for-experts
-"""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+#from __future__ import absolute_import
+#from __future__ import division
+#from __future__ import print_function
 
 import numpy as np
 from sklearn import metrics
@@ -68,21 +63,10 @@ def main(unused_args):
   ### Download and load MNIST dataset.
   mnist = learn.datasets.load_dataset('mnist')
 
-  ### Linear classifier.
-  feature_columns = learn.infer_real_valued_columns_from_input(
-      mnist.train.images)
-  classifier = learn.LinearClassifier(
-      feature_columns=feature_columns, n_classes=10)
-  classifier.fit(mnist.train.images, mnist.train.labels.astype(np.int32),
-                 batch_size=100, steps=1000)
-  score = metrics.accuracy_score(
-      mnist.test.labels, list(classifier.predict(mnist.test.images)))
-  print('Accuracy: {0:f}'.format(score))
-
   ### Convolutional network
   classifier = learn.Estimator(model_fn=conv_model)
   classifier.fit(mnist.train.images, mnist.train.labels,
-                 batch_size=100, steps=50000)
+                 batch_size=100, steps=200)#20,000
   score = metrics.accuracy_score(
       mnist.test.labels, list(classifier.predict(mnist.test.images)))
   print('Accuracy: {0:f}'.format(score))
@@ -90,3 +74,6 @@ def main(unused_args):
 
 if __name__ == '__main__':
   tf.app.run()
+
+
+#EOF.
