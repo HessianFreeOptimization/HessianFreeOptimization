@@ -55,6 +55,20 @@ def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
     tf.histogram_summary(layer_name + '/activations', activations)
     return activations
 
+def inspect_grads(grad, var):
+  if "layer1" in var.op.name:
+    print var.op.name, grad.op.name
+    return
+
+def feed_dict(train):
+  """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
+  if train or FLAGS.fake_data:
+    xs, ys = mnist.train.next_batch(100, fake_data=FLAGS.fake_data)
+    k = FLAGS.dropout
+  else:
+    xs, ys = mnist.test.images, mnist.test.labels
+    k = 1.0
+  return {x: xs, y_: ys, keep_prob: k}
 
 def train():
   # Import data
@@ -121,10 +135,7 @@ def train():
     #   else:
     #     return (grad, var)
     # capped_gvs = [clip_recog_p(grad, var) for grad, var in gvs ]
-    def inspect_grads(grad, var):
-      if "layer1" in var.op.name:
-        print var.op.name, grad.op.name
-        return
+
     for grad, var in gvs:
       inspect_grads(grad, var)
     # ----- [Rui] apply the grdients of loss w.r.t. variables you need with the optimizer; you can get rid of this function by manually calaulating each gradients and applying them by tf.add(); 
@@ -149,21 +160,13 @@ def train():
   # Every 10th step, measure test-set accuracy, and write test summaries
   # All other steps, run train_step on training data, & add training summaries
 
-  def feed_dict(train):
-    """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
-    if train or FLAGS.fake_data:
-      xs, ys = mnist.train.next_batch(100, fake_data=FLAGS.fake_data)
-      k = FLAGS.dropout
-    else:
-      xs, ys = mnist.test.images, mnist.test.labels
-      k = 1.0
-    return {x: xs, y_: ys, keep_prob: k}
+
 
   for i in range(FLAGS.max_steps):
     if i % 10 == 0:  # Record summaries and test-set accuracy
       summary, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
       #test_writer.add_summary(summary, i)
-      print('%s\t%s\t%f' % (i, acc, cross_entropy_output))
+      print('%s\t%s\t%f' % (i, 1.0-acc, cross_entropy_output))
     else:  # Record train set summaries, and train
       if i % 100 == 99:  # Record execution stats
         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
