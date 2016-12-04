@@ -145,9 +145,6 @@ def train():
   merged = tf.merge_all_summaries()
   tf.initialize_all_variables().run()
 
-  # Train the model, and also write summaries.
-  # Every 10th step, measure test-set accuracy
-  # All other steps, run train_step on training data
 
   def feed_dict(isTrain):
     """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
@@ -159,8 +156,9 @@ def train():
       k = 1.0
     return {x: xs, y_: ys, keep_prob: k}
 
+  # Train the model; Every 10th step, measure test-set accuracy
   for i in range(args.max_steps):
-    if i % 1 == 0:  # Record summaries and test-set accuracy
+    if i % 10 == 0:  # test-set accuracy
       _, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
       print('%s\t%s\t%f' % (i, 1.0-acc, cross_entropy_output))
     sess.run([merged, train_step], feed_dict=feed_dict(True))
