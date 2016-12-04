@@ -144,8 +144,8 @@ def train():
 
   # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
   merged = tf.merge_all_summaries()
-  train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train',sess.graph)
-  test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
+#  train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train',sess.graph)
+#  test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
   tf.initialize_all_variables().run()
 
   # Train the model, and also write summaries.
@@ -181,8 +181,8 @@ def train():
       else:  # Record a summary
         summary, _ = sess.run([merged, train_step], feed_dict=feed_dict(True))
 #        train_writer.add_summary(summary, i)
-  train_writer.close()
-  test_writer.close()
+#  train_writer.close()
+#  test_writer.close()
 
 
 if __name__ == '__main__':
