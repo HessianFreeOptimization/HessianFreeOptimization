@@ -163,23 +163,32 @@ def train():
     if i % 10 == 0:  # Record summaries and test-set accuracy
       _, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
       print('%s\t%s\t%f' % (i, 1.0-acc, cross_entropy_output))
-    else:  # Record train set summaries, and train
-      if i % 100 == 99:  # Record execution stats
-        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        run_metadata = tf.RunMetadata()
-        # summary, _= sess.run([merged, train_step],
-        #           feed_dict=feed_dict(True),
-        #           options=run_options,
-        #           run_metadata=run_metadata)
-        sess.run([merged, train_step],
-                  feed_dict=feed_dict(True),
-                  options=run_options,
-                  run_metadata=run_metadata)
+    # else:  # Record train set summaries, and train
+    #   if i % 100 == 99:  # Record execution stats
+    #     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+    #     run_metadata = tf.RunMetadata()
+    #     sess.run([merged, train_step],
+    #               feed_dict=feed_dict(True),
+    #               options=run_options,
+    #               run_metadata=run_metadata)
 
-        print('Adding run metadata for', i)
-      else:  # Record a summary
-        #summary, _ = sess.run([merged, train_step], feed_dict=feed_dict(True))
-        sess.run([merged, train_step], feed_dict=feed_dict(True))
+    #     print('Adding run metadata for', i)
+    else:  # Record a summary
+      sess.run([merged, train_step], feed_dict=feed_dict(True))
+    # else:  # Record train set summaries, and train
+    #   if i % 100 == 99:  # Record execution stats
+    #     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+    #     run_metadata = tf.RunMetadata()
+    #     sess.run([merged, train_step],
+    #               feed_dict=feed_dict(True),
+    #               options=run_options,
+    #               run_metadata=run_metadata)
+
+    #     print('Adding run metadata for', i)
+    #   else:  # Record a summary
+    #     sess.run([merged, train_step], feed_dict=feed_dict(True))
+
+
 
 
 if __name__ == '__main__':
