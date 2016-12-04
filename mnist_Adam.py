@@ -175,12 +175,12 @@ def train():
                   feed_dict=feed_dict(True),
                   options=run_options,
                   run_metadata=run_metadata)
-        train_writer.add_run_metadata(run_metadata, 'step%03d' % i)
-        train_writer.add_summary(summary, i)
+#        train_writer.add_run_metadata(run_metadata, 'step%03d' % i)
+#        train_writer.add_summary(summary, i)
         print('Adding run metadata for', i)
       else:  # Record a summary
         summary, _ = sess.run([merged, train_step], feed_dict=feed_dict(True))
-        train_writer.add_summary(summary, i)
+#        train_writer.add_summary(summary, i)
   train_writer.close()
   test_writer.close()
 
@@ -201,11 +201,8 @@ if __name__ == '__main__':
   parser.add_argument('--summaries_dir', type=str, default='tmp/mnist_logs',
             help='Summaries directory')
   FLAGS = parser.parse_args()
-#  tf.app.run()
   if tf.gfile.Exists(FLAGS.summaries_dir):
     tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
   tf.gfile.MakeDirs(FLAGS.summaries_dir)
   train()
-
-
 #EOF.
