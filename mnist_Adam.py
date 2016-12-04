@@ -144,8 +144,6 @@ def train():
 
   # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
   merged = tf.merge_all_summaries()
-#  train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train',sess.graph)
-#  test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
   tf.initialize_all_variables().run()
 
   # Train the model, and also write summaries.
@@ -165,7 +163,6 @@ def train():
   for i in range(FLAGS.max_steps):
     if i % 10 == 0:  # Record summaries and test-set accuracy
       summary, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
-      #test_writer.add_summary(summary, i)
       print('%s\t%s\t%f' % (i, 1.0-acc, cross_entropy_output))
     else:  # Record train set summaries, and train
       if i % 100 == 99:  # Record execution stats
@@ -175,14 +172,9 @@ def train():
                   feed_dict=feed_dict(True),
                   options=run_options,
                   run_metadata=run_metadata)
-#        train_writer.add_run_metadata(run_metadata, 'step%03d' % i)
-#        train_writer.add_summary(summary, i)
         print('Adding run metadata for', i)
       else:  # Record a summary
         summary, _ = sess.run([merged, train_step], feed_dict=feed_dict(True))
-#        train_writer.add_summary(summary, i)
-#  train_writer.close()
-#  test_writer.close()
 
 
 if __name__ == '__main__':
@@ -198,11 +190,8 @@ if __name__ == '__main__':
             help='Keep probability for training dropout.')
   parser.add_argument('--data_dir', type=str, default='tmp/data',
             help='Directory for storing data')
-  parser.add_argument('--summaries_dir', type=str, default='tmp/mnist_logs',
-            help='Summaries directory')
+
   FLAGS = parser.parse_args()
-  if tf.gfile.Exists(FLAGS.summaries_dir):
-    tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
-  tf.gfile.MakeDirs(FLAGS.summaries_dir)
+
   train()
 #EOF.
