@@ -138,9 +138,9 @@ def train():
     tf.scalar_summary('accuracy', accuracy)
 
   # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
-  #merged = tf.merge_all_summaries()
-  #train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train',sess.graph)
-  #test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
+  merged = tf.merge_all_summaries()
+  train_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/train',sess.graph)
+  test_writer = tf.train.SummaryWriter(FLAGS.summaries_dir + '/test')
   tf.initialize_all_variables().run()
 
   # Train the model, and also write summaries.
@@ -160,7 +160,7 @@ def train():
   for i in range(FLAGS.max_steps):
     if i % 10 == 0:  # Record summaries and test-set accuracy
       summary, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
-      test_writer.add_summary(summary, i)
+      #test_writer.add_summary(summary, i)
       print('%s\t%s\t%f' % (i, acc, cross_entropy_output))
     else:  # Record train set summaries, and train
       if i % 100 == 99:  # Record execution stats
@@ -172,7 +172,7 @@ def train():
                   run_metadata=run_metadata)
         train_writer.add_run_metadata(run_metadata, 'step%03d' % i)
         train_writer.add_summary(summary, i)
-        #print('Adding run metadata for', i)
+        print('Adding run metadata for', i)
       else:  # Record a summary
         summary, _ = sess.run([merged, train_step], feed_dict=feed_dict(True))
         train_writer.add_summary(summary, i)
@@ -180,11 +180,11 @@ def train():
   test_writer.close()
 
 
-# def main(_):
-#   if tf.gfile.Exists(FLAGS.summaries_dir):
-#     tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
-#   tf.gfile.MakeDirs(FLAGS.summaries_dir)
-#   train()
+#def main(_):
+#  if tf.gfile.Exists(FLAGS.summaries_dir):
+#    tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
+#  tf.gfile.MakeDirs(FLAGS.summaries_dir)
+#  train()
 
 
 if __name__ == '__main__':
@@ -203,9 +203,11 @@ if __name__ == '__main__':
   parser.add_argument('--summaries_dir', type=str, default='tmp/mnist_logs',
             help='Summaries directory')
   FLAGS = parser.parse_args()
+#  tf.app.run()
   if tf.gfile.Exists(FLAGS.summaries_dir):
     tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
   tf.gfile.MakeDirs(FLAGS.summaries_dir)
   train()
-  #tf.app.run()
+
+
 #EOF.
