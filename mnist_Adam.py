@@ -65,8 +65,7 @@ def inspect_grads(grad, var):
 def train():
   # Import data
   mnist = input_data.read_data_sets(FLAGS.data_dir,
-                    one_hot=True,
-                    fake_data=FLAGS.fake_data)
+                    one_hot=True)
 
   sess = tf.InteractiveSession()
 
@@ -152,8 +151,8 @@ def train():
 
   def feed_dict(train):
     """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
-    if train or FLAGS.fake_data:
-      xs, ys = mnist.train.next_batch(100, fake_data=FLAGS.fake_data)
+    if train:
+      xs, ys = mnist.train.next_batch(100)
       k = FLAGS.dropout
     else:
       xs, ys = mnist.test.images, mnist.test.labels
@@ -179,9 +178,8 @@ def train():
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--fake_data', nargs='?', const=True, type=bool,
-            default=False,
-            help='If true, uses fake data for unit testing.')
+#  parser.add_argument('--fake_data', nargs='?', const=True, type=bool, default=False,
+#            help='If true, uses fake data for unit testing.')
   parser.add_argument('--max_steps', type=int, default=1000,
             help='Number of steps to run trainer.')
   parser.add_argument('--learning_rate', type=float, default=0.001,
