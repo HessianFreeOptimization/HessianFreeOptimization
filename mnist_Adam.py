@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 
 # Basic model parameters as external flags.
-FLAGS = None
+args = None
 
 # We can't initialize these variables to 0 - the network will get stuck.
 def weight_variable(shape):
@@ -64,7 +64,7 @@ def inspect_grads(grad, var):
 
 def train():
   # Import data
-  mnist = input_data.read_data_sets(FLAGS.data_dir,
+  mnist = input_data.read_data_sets(args.data_dir,
                     one_hot=True)
 
   sess = tf.InteractiveSession()
@@ -109,11 +109,11 @@ def train():
 
   with tf.name_scope('train'):
     # ----- [Rui] How we typically imexplicitly set up the optimizer
-    # train_step = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(
+    # train_step = tf.train.AdamOptimizer(args.learning_rate).minimize(
     #     cross_entropy)
 
     # ----- [Rui] How we cal the gradients and manually apply them
-    optimizer_def = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
+    optimizer_def = tf.train.AdamOptimizer(learning_rate=args.learning_rate)
     # [Rui] optimizer.compute_gradients() get you the grad of the optimzier(loss) w.r.t. each variable; then you can use optimizer.apply_gradients() to apply grads to the vars
     # [Rui] If you need the grad of a var w.r.t. another, you can look at the answer at http://stackoverflow.com/questions/35226428/how-do-i-get-the-gradient-of-the-loss-at-a-tensorflow-variable
     # and then you will be able to compute your own gradients of any variable (including the loss) w.r.t its previous variables;
@@ -153,13 +153,13 @@ def train():
     """Make a TensorFlow feed_dict: maps data onto Tensor placeholders."""
     if train:
       xs, ys = mnist.train.next_batch(100)
-      k = FLAGS.dropout
+      k = args.dropout
     else:
       xs, ys = mnist.test.images, mnist.test.labels
       k = 1.0
     return {x: xs, y_: ys, keep_prob: k}
 
-  for i in range(FLAGS.max_steps):
+  for i in range(args.max_steps):
     if i % 10 == 0:  # Record summaries and test-set accuracy
       summary, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
       print('%s\t%s\t%f' % (i, 1.0-acc, cross_entropy_output))
@@ -178,8 +178,6 @@ def train():
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-#  parser.add_argument('--fake_data', nargs='?', const=True, type=bool, default=False,
-#            help='If true, uses fake data for unit testing.')
   parser.add_argument('--max_steps', type=int, default=1000,
             help='Number of steps to run trainer.')
   parser.add_argument('--learning_rate', type=float, default=0.001,
@@ -188,8 +186,7 @@ if __name__ == '__main__':
             help='Keep probability for training dropout.')
   parser.add_argument('--data_dir', type=str, default='tmp/data',
             help='Directory for storing data')
-
-  FLAGS = parser.parse_args()
+  args = parser.parse_args()
 
   train()
 #EOF.
