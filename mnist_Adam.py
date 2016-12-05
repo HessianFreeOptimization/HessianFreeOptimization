@@ -142,7 +142,8 @@ def train():
     #tf.scalar_summary('accuracy', accuracy)
 
   # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
-  merged = tf.merge_all_summaries()
+#  merged = tf.merge_all_summaries()
+  merged = tf.summary.merge_all()
   tf.initialize_all_variables().run()
 
 
