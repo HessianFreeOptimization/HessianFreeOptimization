@@ -114,6 +114,7 @@ def train():
 
     # ----- [Rui] How we cal the gradients and manually apply them
     optimizer_def = tf.train.AdamOptimizer(learning_rate=args.learning_rate)
+
     # [Rui] optimizer.compute_gradients() get you the grad of the optimzier(loss) w.r.t. each variable; then you can use optimizer.apply_gradients() to apply grads to the vars
     # [Rui] If you need the grad of a var w.r.t. another, you can look at the answer at http://stackoverflow.com/questions/35226428/how-do-i-get-the-gradient-of-the-loss-at-a-tensorflow-variable
     # and then you will be able to compute your own gradients of any variable (including the loss) w.r.t its previous variables;
@@ -143,7 +144,7 @@ def train():
 
   # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
 #  merged = tf.merge_all_summaries()
-  merged = tf.summary.merge_all()
+  #merged = tf.merge_all_summaries()
   tf.initialize_all_variables().run()
 
 
@@ -159,10 +160,10 @@ def train():
 
   # Train the model; Every 10th step, measure test-set accuracy
   for i in range(args.max_steps):
-    if i % 10 == 0:  # test-set accuracy
-      _, acc, cross_entropy_output = sess.run([merged, accuracy, cross_entropy], feed_dict=feed_dict(False))
+    if i % 1 == 0:  # test-set accuracy
+      acc, cross_entropy_output = sess.run([accuracy, cross_entropy], feed_dict=feed_dict(False))
       print('%s\t%s\t%f' % (i, 1.0-acc, cross_entropy_output))
-    sess.run([merged, train_step], feed_dict=feed_dict(True))
+    sess.run([train_step], feed_dict=feed_dict(True))
 
 
 if __name__ == '__main__':
