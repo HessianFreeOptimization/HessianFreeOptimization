@@ -20,18 +20,6 @@ def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
 
-# def variable_summaries(var, name):
-#   """Attach a lot of summaries to a Tensor."""
-#   with tf.name_scope('summaries'):
-#     mean = tf.reduce_mean(var)
-#     tf.scalar_summary('mean/' + name, mean)
-#     with tf.name_scope('stddev'):
-#       stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-#     tf.scalar_summary('stddev/' + name, stddev)
-#     tf.scalar_summary('max/' + name, tf.reduce_max(var))
-#     tf.scalar_summary('min/' + name, tf.reduce_min(var))
-#     tf.histogram_summary(name, var)
-
 def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
   """Reusable code for making a simple neural net layer.
 
@@ -44,23 +32,17 @@ def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
     # This Variable will hold the state of the weights for the layer
     with tf.name_scope('weights'):
       weights = weight_variable([input_dim, output_dim])
-      #variable_summaries(weights, layer_name + '/weights')
     with tf.name_scope('biases'):
       biases = bias_variable([output_dim])
-      #variable_summaries(biases, layer_name + '/biases')
     with tf.name_scope('Wx_plus_b'):
       preactivate = tf.matmul(input_tensor, weights) + biases
-      #tf.histogram_summary(layer_name + '/pre_activations', preactivate)
     activations = act(preactivate, name='activation')
-    #tf.histogram_summary(layer_name + '/activations', activations)
     return activations
 
 def inspect_grads(grad, var):
   if "layer1" in var.op.name:
     print var.op.name, grad.op.name
     return
-
-
 
 def train():
   # Import data
@@ -77,11 +59,18 @@ def train():
 
   with tf.name_scope('input_reshape'):
     image_shaped_input = tf.reshape(x, [-1, 28, 28, 1])
-    #tf.image_summary('input', image_shaped_input, 10)
 
 
+  with tf.name_scope('layer1'):
+    # This Variable will hold the state of the weights for the layer
+    with tf.name_scope('weights'):
+      weights = weight_variable([784, 500])
+    with tf.name_scope('biases'):
+      biases = bias_variable([500])
+    with tf.name_scope('Wx_plus_b'):
+      preactivate = tf.matmul(x, weights) + biases
+    hidden1 = tf.nn.relu(preactivate, name='activation')
 
-  hidden1 = nn_layer(x, 784, 500, 'layer1')
 
   with tf.name_scope('dropout'):
     keep_prob = tf.placeholder(tf.float32)
@@ -89,7 +78,19 @@ def train():
     dropped = tf.nn.dropout(hidden1, keep_prob)
 
   # Do not apply softmax activation yet, see below.
-  y = nn_layer(dropped, 500, 10, 'layer2', act=tf.identity)
+
+  #y = nn_layer(dropped, 500, 10, 'layer2', act=tf.identity)
+
+  with tf.name_scope('layer2'):
+    # This Variable will hold the state of the weights for the layer
+    with tf.name_scope('weights'):
+      weights = weight_variable([500, 10])
+    with tf.name_scope('biases'):
+      biases = bias_variable([10])
+    with tf.name_scope('Wx_plus_b'):
+      preactivate = tf.matmul(dropped, weights) + biases
+    y = tf.identity(preactivate, name='activation')
+
 
   with tf.name_scope('cross_entropy'):
     # The raw formulation of cross-entropy,
@@ -132,7 +133,8 @@ def train():
       inspect_grads(grad, var)
     # ----- [Rui] apply the grdients of loss w.r.t. variables you need with the optimizer; you can get rid of this function by manually calaulating each gradients and applying them by tf.add(); 
     # then you will not be able to use built-in optimizers like SGD or Adam any more;
-    train_step = optimizer_def.apply_gradients(gvs)
+    train_step 
+    # train_step = optimizer_def.apply_gradients(gvs)
 
 
   with tf.name_scope('accuracy'):
@@ -140,11 +142,8 @@ def train():
       correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     with tf.name_scope('accuracy'):
       accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    #tf.scalar_summary('accuracy', accuracy)
 
-  # Merge all the summaries and write them out to /tmp/mnist_logs (by default)
-#  merged = tf.merge_all_summaries()
-  #merged = tf.merge_all_summaries()
+
   tf.initialize_all_variables().run()
 
 
