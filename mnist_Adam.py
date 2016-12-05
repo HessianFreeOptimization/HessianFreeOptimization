@@ -39,11 +39,6 @@ def nn_layer(input_tensor, input_dim, output_dim, layer_name, act=tf.nn.relu):
     activations = act(preactivate, name='activation')
     return activations
 
-def inspect_grads(grad, var):
-  if "layer1" in var.op.name:
-    print var.op.name, grad.op.name
-    return
-
 def train():
   # Import data
   mnist = input_data.read_data_sets(args.data_dir,
@@ -92,6 +87,8 @@ def train():
     y = tf.identity(preactivate, name='activation')
 
 
+
+
   with tf.name_scope('cross_entropy'):
     # The raw formulation of cross-entropy,
     #
@@ -129,11 +126,17 @@ def train():
     #     return (grad, var)
     # capped_gvs = [clip_recog_p(grad, var) for grad, var in gvs ]
 
+    def inspect_grads(grad, var):
+      print var.op.name, grad.op.name
+      lr = 1e-3
+      return tf.assign(var, tf.add(var, -lr * grad))
+
+    updates_ops  =[]
     for grad, var in gvs:
-      inspect_grads(grad, var)
+      updates_ops.append(inspect_grads(grad, var))
+    grad1 = gvs[0][1]
     # ----- [Rui] apply the grdients of loss w.r.t. variables you need with the optimizer; you can get rid of this function by manually calaulating each gradients and applying them by tf.add(); 
     # then you will not be able to use built-in optimizers like SGD or Adam any more;
-    train_step 
     # train_step = optimizer_def.apply_gradients(gvs)
 
 
@@ -159,15 +162,16 @@ def train():
 
   # Train the model; Every 10th step, measure test-set accuracy
   for i in range(args.max_steps):
-    if i % 1 == 0:  # test-set accuracy
+    if i % 10 == 0:  # test-set accuracy
       acc, cross_entropy_output = sess.run([accuracy, cross_entropy], feed_dict=feed_dict(False))
       print('%s\t%s\t%f' % (i, 1.0-acc, cross_entropy_output))
-    sess.run([train_step], feed_dict=feed_dict(True))
+    _, grad1_out = sess.run([updates_ops, grad1], feed_dict=feed_dict(True))
+    print grad1_out.shape
 
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--max_steps', type=int, default=10,
+  parser.add_argument('--max_steps', type=int, default=10000,
             help='Number of steps to run trainer.')
   parser.add_argument('--learning_rate', type=float, default=0.001,
             help='Initial learning rate')
