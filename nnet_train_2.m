@@ -1,4 +1,12 @@
-function paramsp = nnet_train_2( runName, paramsp, Win, bin, resumeFile, maxepoch, indata, outdata, numchunks, intest, outtest, numchunks_test, layersizes, layertypes, rms, errtype, hybridmode, weightcost, decay)
+function paramsp = nnet_train_2(maxepoch, indata, outdata, numchunks, intest, outtest, numchunks_test, errtype, weightcost, decay)
+paramsp = [];
+Win = [];
+bin = [];
+
+layersizes = [400 6 400];
+%Note that the code layer uses linear units
+layertypes = {'logistic', 'linear', 'logistic', 'logistic'};
+
 % IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
 % `maxiters' (harder).  Also, if your particular application is still not working the next 
 % most likely way to fix it is tweaking the variable `initcoeff' which controls
@@ -6,17 +14,11 @@ function paramsp = nnet_train_2( runName, paramsp, Win, bin, resumeFile, maxepoc
 % get a negative result, and then publish a paper about how the approach doesn't work :)  And if
 % you are running into difficulties feel free to e-mail me at james.martens@gmail.com
 %
-% runName - name you give to the current run.  This is used for the
-% log-file and the files which contain the current parameters that get
-% saved every 10 epochs
-%
 % paramsp - initial parameters in the form of a vector (can be []).  If
 % this, or the arguments Win,bin are empty, the 'sparse initialization'
 % technique is used
 %
 % Win, bin - initial parameters in their matrix forms (can be [])
-%
-% resumeFile - file used to resume a previous run from a file
 %
 % maxepoch - maximum number of 'epochs' (outer iteration of HF).  There is no termination condition
 % for the optimizer and usually I just stop it by issuing a break command
@@ -64,11 +66,6 @@ function paramsp = nnet_train_2( runName, paramsp, Win, bin, resumeFile, maxepoc
 % classification error, or 'none' for nothing.  It should be easy enough to
 % add your own type of error should you need one
 %
-% hybridmode - set this 1 unless you want compute the matrix-vector
-% products using the whole training dataset instead of the mini-batches.
-% Note that in this case they still serve a purpose since the mini-batches
-% are only loaded onto the gpu 1 at a time.
-%
 % weightcost - the strength of the l_2 prior on the weights
 %
 % decay - the amount to decay the previous search direction for the
@@ -82,7 +79,7 @@ function paramsp = nnet_train_2( runName, paramsp, Win, bin, resumeFile, maxepoc
 
 
 
-rec_constants = {'layersizes', 'rms', 'weightcost', 'hybridmode', 'autodamp', 'initlambda', 'drop', 'boost', 'numchunks', 'errtype', 'decay'};
+rec_constants = {'layersizes', 'weightcost', 'autodamp', 'initlambda', 'drop', 'boost', 'numchunks', 'errtype', 'decay'};
 
 
 autodamp = 1;
@@ -107,9 +104,8 @@ initlambda = 45.0;
 
 
 
-
+% computeBV = computeGV
 storeD = 0;
-computeBV = @computeGV;
 
 
 
@@ -131,15 +127,12 @@ mzeros = @zeros;
 conv = @double;
 %}
 
-mrandn = @randn;
 
-if hybridmode
-    store = conv; %cache activities on the gpu
+%if hybridmode
+store = conv; %cache activities on the gpu
 
-    %store = @single; %cache activities on the cpu
-else
-    store = @single;
-end
+%store = @single; %cache activities on the cpu
+
 
 
 layersizes = [size(indata,1) layersizes size(outdata,1)];
@@ -213,162 +206,6 @@ function [W,b] = unpack(M)
 end
 
 
-%compute the vector-product with the Hessian matrix
-function HV = computeHV(V)
-    
-    if ~storeD
-        error('need to store D');
-    end
-
-    [VWu, Vbu] = unpack(V);
-    
-    HV = mzeros(psize,1);
-    
-    if hybridmode
-        chunkrange = targetchunk; %set outside
-    else
-        chunkrange = 1:numchunks;
-    end
-
-    
-    for chunk = chunkrange
-
-        %application of R operator
-        Ry = cell(numlayers+1,1);
-        RdEdy = cell(numlayers+1,1);
-        RdEdx = cell(numlayers, 1);
-        HVW = cell(numlayers,1);
-        HVb = cell(numlayers,1);
-
-        %forward prop:
-        Ryip1 = mzeros(layersizes(1), sizechunk);
-        yip1 = conv(y{chunk, 1});
-        for i = 1:numlayers
-
-            Ryi = Ryip1;
-            Ryip1 = [];
-
-            yi = yip1;
-            yip1 = [];
-
-            Rxi = Wu{i}*Ryi + VWu{i}*yi + repmat(Vbu{i}, [1 sizechunk]);
-
-            Ry{i} = store(Ryi);
-            Ryi = [];
-
-            yip1 = conv(y{chunk, i+1});
-            if strcmp(layertypes{i}, 'logistic')
-                Ryip1 = Rxi.*yip1.*(1-yip1);
-            elseif strcmp(layertypes{i}, 'linear')
-                Ryip1 = Rxi;
-            elseif strcmp( layertypes{i}, 'softmax' )
-                Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
-            else
-                error( 'Unknown/unsupported layer type' );
-            end
-
-            Rxi = [];
-
-        end
-
-
-        %backward prop:
-        %cross-entropy for logistics:
-        %RdEdy{numlayers+1} = (-(outdata./(y{numlayers+1}.^2) + (1-outdata)./(1-y{numlayers+1}).^2)).*Ry{numlayers+1};
-        %cross-entropy for softmax:
-        %RdEdy{numlayers+1} = -outdata./(y{numlayers+1}.^2).*Ry{numlayers+1};
-        for i = numlayers:-1:1
-
-            if i < numlayers
-                if strcmp(layertypes{i}, 'logistic')
-                    %logistics:
-
-                    dEdyip1 = conv( dEdy{chunk, i+1} );
-                    RdEdx{i} = RdEdy{i+1}.*yip1.*(1-yip1) + dEdyip1.*Ryip1.*(1-2*yip1);
-                    dEdyip1 = [];
-
-                elseif strcmp(layertypes{i}, 'linear')
-                    RdEdx{i} = RdEdy{i+1};
-                else
-                    error( 'Unknown/unsupported layer type' );
-                end
-
-            else
-                if ~rms
-                    %assume canonical link functions:
-                    RdEdx{i} = -Ryip1;
-                    
-                    if strcmp(layertypes{i}, 'linear')
-                        RdEdx{i} = 2*RdEdx{i};
-                    end
-                else
-                    dEdyip1 = 2*(conv(outdata(:, ((chunk-1)*sizechunk+1):(chunk*sizechunk) )) - yip1); %mult by 2 because we dont include the 1/2 before
-                    RdEdyip1 = -2*Ryip1;
-                    
-                    if strcmp( layertypes{i}, 'softmax' )
-                        %softmax:
-                        RdEdx{i} = RdEdyip1.*yip1 - yip1.*repmat( sum( RdEdyip1.*yip1, 1), [layersizes(i+1) 1] ) ...
-                                + dEdyip1.*Ryip1 - yip1.*repmat( sum( dEdyip1.*Ryip1, 1), [layersizes(i+1) 1] ) - Ryip1.*repmat( sum( dEdyip1.*yip1, 1), [layersizes(i+1) 1] );
-                            
-                        %error( 'RMS error not supported with softmax output' );
-                        
-                    elseif strcmp( layertypes{i}, 'logistic' )
-                        RdEdx{i} = RdEdyip1.*yip1.*(1-yip1) + dEdyip1.*Ryip1.*(1-2*yip1);
-                        
-                    elseif strcmp(layertypes{i}, 'linear')
-                        RdEdx{i} = RdEdyip1;
-
-                    else
-                        error( 'Unknown/unsupported layer type' );
-                    end
-                    
-                    dEdyip1 = [];
-                    RdEdyip1 = [];
-                    
-                end
-            end
-            RdEdy{i+1} = [];
-
-            yip1 = []; Ryip1 = [];
-
-            yi = conv( y{chunk, i} );
-            Ryi = conv( Ry{i} );        
-
-            dEdxi = conv( dEdx{chunk, i} );
-
-            RdEdy{i} = VWu{i}'*dEdxi + Wu{i}'*RdEdx{i};
-
-            %(HV = RdEdW)
-            HVW{i} = RdEdx{i}*yi' + dEdxi*Ryi';
-            HVb{i} = sum(RdEdx{i},2);
-
-            RdEdx{i} = []; dEdxi = [];
-
-            yip1 = yi; yi = [];
-            Ryip1 = Ryi; Ryi = [];
-
-        end
-        yip1 = []; Ryip1 = []; RdEdy{1} = [];
-
-
-        HV = HV + pack(HVW, HVb);
-    end
-
-    HV = HV / conv(numcases);
-    
-    if hybridmode
-        HV = HV * conv(numchunks);
-    end
-    
-    HV = HV - conv(weightcost)*(maskp.*V);
-    
-    if autodamp
-        HV = HV - conv(lambda)*V;
-    end
-    
-end
-
-
 %compute the vector-product with the Gauss-Newton matrix
 function GV = computeGV(V)
 
@@ -376,11 +213,8 @@ function GV = computeGV(V)
     
     GV = mzeros(psize,1);
     
-    if hybridmode
-        chunkrange = targetchunk; %set outside
-    else
-        chunkrange = 1:numchunks;
-    end
+    %if hybridmode
+    chunkrange = targetchunk; %set outside
 
     for chunk = chunkrange
         
@@ -446,32 +280,12 @@ function GV = computeGV(V)
                     error( 'Unknown/unsupported layer type' );
                 end
             else
-                if ~rms
-                    %assume canonical link functions:
-                    rdEdx{i} = -Ryip1;
-                    
-                    if strcmp(layertypes{i}, 'linear')
-                        rdEdx{i} = 2*rdEdx{i};
-                    end
-                else
-                    RdEdyip1 = -2*Ryip1;
-                    
-                    if strcmp(layertypes{i}, 'softmax')
-                        error( 'RMS error not supported with softmax output' );
-                    elseif strcmp(layertypes{i}, 'logistic')
-                        rdEdx{i} = RdEdyip1.*yip1.*(1-yip1);
-                    elseif strcmp(layertypes{i}, 'tanh')
-                        rdEdx{i} = RdEdyip1.*(1+yip1).*(1-yip1);
-                    elseif strcmp(layertypes{i}, 'linear')
-                        rdEdx{i} = RdEdyip1;
-                    else
-                        error( 'Unknown/unsupported layer type' );
-                    end
-                    
-                    RdEdyip1 = [];
-                    
+                %assume canonical link functions:
+                rdEdx{i} = -Ryip1;
+
+                if strcmp(layertypes{i}, 'linear')
+                    rdEdx{i} = 2*rdEdx{i};
                 end
-                
                 Ryip1 = [];
 
             end
@@ -498,9 +312,9 @@ function GV = computeGV(V)
     
     GV = GV / conv(numcases);
     
-    if hybridmode
-        GV = GV * conv(numchunks);
-    end
+    %if hybridmode
+    GV = GV * conv(numchunks);
+    
     
     GV = GV - conv(weightcost)*(maskp.*V);
 
@@ -553,7 +367,7 @@ function [ll, err] = computeLL(params, in, out, nchunks, tchunk)
 
         end
 
-        if rms || strcmp( layertypes{numlayers}, 'linear' )
+        if strcmp( layertypes{numlayers}, 'linear' )
             
             ll = ll + double( -sum(sum((outc - yi).^2)) );
             
@@ -651,46 +465,23 @@ outtest = single(outtest);
 
 function outputString( s )
     fprintf( 1, '%s\n', s );
-    fprintf( fid, '%s\r\n', s );
 end
-
-
-
-fid = fopen( [runName '.txt'], 'a' );
-
-outputString( '' );
-outputString( '' );
-outputString( '==================== New Run ====================' );
-outputString( '' );
-outputString( ['Start time: ' datestr(now)] );
-outputString( '' );
-outputString( '' );
-
 
 ch = mzeros(psize, 1);
 
-if ~isempty( resumeFile )
-    outputString( ['Resuming from file: ' resumeFile] );
-    outputString( '' );
-    
-    load( resumeFile );
-    
-    ch = conv(ch);
 
-    epoch = epoch + 1;
-else
     
-    lambda = initlambda;
+lambda = initlambda;
+
+llrecord = zeros(maxepoch,2);
+errrecord = zeros(maxepoch,2);
+lambdarecord = zeros(maxepoch,1);
+times = zeros(maxepoch,1);
+
+totalpasses = 0;
+epoch = 1;
     
-    llrecord = zeros(maxepoch,2);
-    errrecord = zeros(maxepoch,2);
-    lambdarecord = zeros(maxepoch,1);
-    times = zeros(maxepoch,1);
-    
-    totalpasses = 0;
-    epoch = 1;
-    
-end
+
 
 if isempty(paramsp)
     if ~isempty(Win)
@@ -825,13 +616,13 @@ for epoch = epoch:maxepoch
         %cross-entropy for softmax:
         %dEdy{numlayers+1} = outdata./y{numlayers+1};
 
-        if hybridmode && chunk ~= targetchunk
+        if chunk ~= targetchunk
             y{chunk, numlayers+1} = []; %save memory
         end
 
         outc = conv(outdata(:, ((chunk-1)*sizechunk+1):(chunk*sizechunk) ));
         
-        if rms || strcmp( layertypes{numlayers}, 'linear' )
+        if strcmp( layertypes{numlayers}, 'linear' )
             ll = ll + double( -sum(sum((outc - yip1).^2)) );
         else
             if strcmp( layertypes{numlayers}, 'logistic' )
@@ -859,48 +650,24 @@ for epoch = epoch:maxepoch
                     error( 'Unknown/unsupported layer type' );
                 end
             else
-                if ~rms
-                    dEdxi = outc - yip1; %simplified due to canonical link
+                dEdxi = outc - yip1; %simplified due to canonical link
 
-                    if strcmp(layertypes{i}, 'linear')
-                        dEdxi = 2*dEdxi;  %the convention is to use the doubled version of the squared-error objective
-                    end
-
-                    
-                else
-                    dEdyip1 = 2*(outc - yip1); %mult by 2 because we dont include the 1/2 before
-
-                    if strcmp( layertypes{i}, 'softmax' )
-                        dEdxi = dEdyip1.*yip1 - yip1.* repmat( sum( dEdyip1.*yip1, 1 ), [layersizes(i+1) 1] );
-                        %error( 'RMS error not supported with softmax output' );
-
-                    elseif strcmp(layertypes{i}, 'logistic')
-                        dEdxi = dEdyip1.*yip1.*(1-yip1);
-                    elseif strcmp(layertypes{i}, 'tanh')
-                        dEdxi = dEdyip1.*(1+yip1).*(1-yip1);
-                    elseif strcmp(layertypes{i}, 'linear')
-                        dEdxi = dEdyip1;
-                    else
-                        error( 'Unknown/unsupported layer type' );
-                    end
-
-                    dEdyip1 = [];
-
+                if strcmp(layertypes{i}, 'linear')
+                    dEdxi = 2*dEdxi;  %the convention is to use the doubled version of the squared-error objective
                 end
 
                 outc = [];
-
             end
             dEdyi = Wu{i}'*dEdxi;
 
-            if storeD && (~hybridmode || chunk == targetchunk)
+            if storeD && (chunk == targetchunk)
                 dEdx{chunk, i} = store(dEdxi);
                 dEdy{chunk, i} = store(dEdyi);
             end
 
             yi = conv(y{chunk, i});
 
-            if hybridmode && chunk ~= targetchunk
+            if chunk ~= targetchunk
                 y{chunk, i} = []; %save memory
             end
 
@@ -981,7 +748,7 @@ for epoch = epoch:maxepoch
     precon = (grad2 + mones(psize,1)*conv(lambda) + maskp*conv(weightcost)).^(3/4);
     %precon = mones(psize,1);
 
-    [chs, iterses] = conjgrad_1( @(V)-computeBV(V), grad, ch, ceil(maxiters), ceil(miniters), precon );
+    [chs, iterses] = conjgrad_1( @(V)-computeGV(V), grad, ch, ceil(maxiters), ceil(miniters), precon );
 
     ch = chs{end};
     iters = iterses(end);
@@ -992,47 +759,10 @@ for epoch = epoch:maxepoch
     p = ch;
     outputString( ['ch magnitude : ' num2str(double(norm(ch)))] );
 
-
-
-
     j = length(chs);
     
 
     %"CG-backtracking":
-    %It is not clear what subset of the data you should perform this on.
-    %If possible you can use the full training set, as the uncommented block
-    %below does.  Otherwise you could use some other set, like the current
-    %mini-batch set, although that *could* be worse in some cases.  You can
-    %also try not using it at all, or implementing it better so that it doesn't
-    %require the extra storage
-
-    %version with no backtracking:
-    %{
-    [ll, err] = computeLL(paramsp + chs{j}, indata, outdata, numchunks);
-    %}
-    
-    %current mini-batch version:
-    %{
-    [ll_chunk, err_chunk] = computeLL(paramsp + p, indata, outdata, numchunks, targetchunk);
-    [oldll_chunk, olderr_chunk] = computeLL(paramsp, indata, outdata, numchunks, targetchunk);
-
-    for j = (length(chs)-1):-1:1
-        [lowll_chunk, lowerr_chunk] = computeLL(paramsp + chs{j}, indata, outdata, numchunks, targetchunk);
-
-        if ll_chunk > lowll_chunk
-            j = j+1;
-            break;
-        end
-
-        ll_chunk = lowll_chunk;
-        err_chunk = lowerr_chunk;
-    end
-    if isempty(j)
-        j = 1;
-    end
-    [ll, err] = computeLL(paramsp + chs{j}, indata, outdata, numchunks);
-    %}
-
     %full training set version:
     [ll, err] = computeLL(paramsp + p, indata, outdata, numchunks);
     for j = (length(chs)-1):-1:1
@@ -1062,7 +792,7 @@ for epoch = epoch:maxepoch
     %computation could probably be done on a different subset of the training data
     %or even the whole thing
     autodamp = 0;
-    denom = -0.5*double(chs{j}'*computeBV(chs{j})) - double(grad'*chs{j});
+    denom = -0.5*double(chs{j}'*computeGV(chs{j})) - double(grad'*chs{j});
     autodamp = 1;
     rho = (oldll_chunk - ll_chunk)/denom;
     if oldll_chunk - ll_chunk > 0
@@ -1141,10 +871,6 @@ for epoch = epoch:maxepoch
     paramsp = single(paramsp);
     tmp2 = ch;
     ch = single(ch);
-    save( [runName '_nnet_running.mat'], 'paramsp', 'ch', 'epoch', 'lambda', 'totalpasses', 'llrecord', 'times', 'errrecord', 'lambdarecord' );
-    if mod(epoch,10) == 0
-        save( [runName '_nnet_epoch' num2str(epoch) '.mat'], 'paramsp', 'ch', 'epoch', 'lambda', 'totalpasses', 'llrecord', 'times', 'errrecord', 'lambdarecord' );
-    end
     paramsp = tmp;
     ch = tmp2;
 
@@ -1156,6 +882,5 @@ paramsp = double(paramsp);
 
 outputString( ['Total time: ' num2str(sum(times)) ] );
 
-fclose(fid);
 
 end
