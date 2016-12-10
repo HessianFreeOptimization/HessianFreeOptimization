@@ -1,6 +1,4 @@
-function paramsp = nnet_train_2( runName, runDesc, paramsp, Win, bin, resumeFile, maxepoch, indata, outdata, numchunks, intest, outtest, numchunks_test, layersizes, layertypes, mattype, rms, errtype, hybridmode, weightcost, decay)
-% paramsp = nnet_train_2( runName, runDesc, paramsp, Win, bin, resumeFile, maxepoch, indata, outdata, numchunks, intest, outtest, numchunks_test, layersizes, layertypes, mattype, rms, errtype, hybridmode, weightcost, decay, jacket)
-%
+function paramsp = nnet_train_2( runName, paramsp, Win, bin, resumeFile, maxepoch, indata, outdata, numchunks, intest, outtest, numchunks_test, layersizes, layertypes, rms, errtype, hybridmode, weightcost, decay)
 % IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
 % `maxiters' (harder).  Also, if your particular application is still not working the next 
 % most likely way to fix it is tweaking the variable `initcoeff' which controls
@@ -11,8 +9,6 @@ function paramsp = nnet_train_2( runName, runDesc, paramsp, Win, bin, resumeFile
 % runName - name you give to the current run.  This is used for the
 % log-file and the files which contain the current parameters that get
 % saved every 10 epochs
-%
-% runDesc - notes to yourself about the current run (can be the empty string)
 %
 % paramsp - initial parameters in the form of a vector (can be []).  If
 % this, or the arguments Win,bin are empty, the 'sparse initialization'
@@ -55,11 +51,6 @@ function paramsp = nnet_train_2( runName, runDesc, paramsp, Win, bin, resumeFile
 % tanh because I haven't implemented that (even though it's easy).
 % Consider that an exercise :)
 %
-% mattype - the type of curvature matrix to use.  can be 'gn' for
-% Gauss-Newton, 'hess' for Hessian and 'empfish' for empirical Fisher.  You
-% should probably only ever use 'gn' if you actually want the training to
-% go well
-%
 % rms - by default we use the canonical error function for
 % each output unit type.  e.g. square error for linear units and
 % cross-entropy error for logistics.  Setting this to 1 (instead of 0) overrides 
@@ -90,9 +81,8 @@ function paramsp = nnet_train_2( runName, runDesc, paramsp, Win, bin, resumeFile
 
 
 
-disp( ['Starting run named: ' runName ]);
 
-rec_constants = {'layersizes', 'rms', 'weightcost', 'hybridmode', 'autodamp', 'initlambda', 'drop', 'boost', 'numchunks', 'mattype', 'errtype', 'decay'};
+rec_constants = {'layersizes', 'rms', 'weightcost', 'hybridmode', 'autodamp', 'initlambda', 'drop', 'boost', 'numchunks', 'errtype', 'decay'};
 
 
 autodamp = 1;
@@ -116,16 +106,10 @@ boost = 1/drop;
 initlambda = 45.0;
 
 
-if strcmp(mattype, 'hess')
-    storeD = 1;
-    computeBV = @computeHV;
-elseif strcmp(mattype, 'gn')
-    storeD = 0;
-    computeBV = @computeGV;
-elseif strcmp(mattype, 'empfish')
-    storeD = 0;
-    computeBV = @computeFV;
-end
+
+
+storeD = 0;
+computeBV = @computeGV;
 
 
 
@@ -525,164 +509,8 @@ function GV = computeGV(V)
     end
     
 end
-
-
-%compute the vector-product with the emperical Fisher matrix
-function FV = computeFV(V)
-
-    [VWu, Vbu] = unpack(V);
     
-    FV = mzeros(psize,1);
-    
-    if hybridmode
-        chunkrange = targetchunk; %set outside
-    else
-        chunkrange = 1:numchunks;
-    end
 
-    for chunk = chunkrange
-        
-        %application of R operator
-        rdEdy = cell(numlayers+1,1);
-        rdEdx = cell(numlayers, 1);
-
-        FVW = cell(numlayers,1);
-        FVb = cell(numlayers,1);
-        
-        Rx = cell(numlayers,1);
-
-
-        %forward prop:
-        Ryip1 = mzeros(layersizes(1), sizechunk);
-        yip1 = conv(y{chunk, 1});
-        for i = 1:numlayers
-
-            Ryi = Ryip1;
-            Ryip1 = [];
-
-            yi = yip1;
-            yip1 = [];
-
-            Rxi = Wu{i}*Ryi + VWu{i}*yi + repmat(Vbu{i}, [1 sizechunk]);
-            %Rx{i} = store(Rxi);
-
-            yip1 = conv(y{chunk, i+1});
-
-            if i < numlayers
-                if strcmp(layertypes{i}, 'logistic')
-                    Ryip1 = Rxi.*yip1.*(1-yip1);
-                elseif strcmp(layertypes{i}, 'tanh')
-                    Ryip1 = Rxi.*(1+yip1).*(1-yip1);
-                elseif strcmp(layertypes{i}, 'linear')
-                    Ryip1 = Rxi;
-                elseif strcmp( layertypes{i}, 'softmax' )
-                    Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
-                else
-                    error( 'Unknown/unsupported layer type' );
-                end
-            else
-                dEdxi = conv(outdata(:, ((chunk-1)*sizechunk+1):(chunk*sizechunk) )) - yip1;
-                Ryip1 = repmat(sum(Rxi.*dEdxi, 1), [layersizes(i+1) 1]).*dEdxi;
-                %Ryip1 = Rxi.*(dEdxi.^2);
-                dEdxi = [];
-                
-                if rms
-                    error('not sure if this works');
-                end
-            end
-
-            Rxi = [];
-
-        end
-
-        %back prop:
-        %cross-entropy for logistics:
-        %dEdy{numlayers+1} = outdata./y{numlayers+1} - (1-outdata)./(1-y{numlayers+1});
-        %cross-entropy for softmax:
-        %dEdy{numlayers+1} = outdata./y{numlayers+1};
-        for i = numlayers:-1:1
-
-            if i < numlayers
-                %logistics:
-                if strcmp(layertypes{i}, 'logistic')
-                    rdEdx{i} = rdEdy{i+1}.*yip1.*(1-yip1);
-                elseif strcmp(layertypes{i}, 'tanh')
-                    rdEdx{i} = rdEdy{i+1}.*(1+yip1).*(1-yip1);
-                elseif strcmp(layertypes{i}, 'linear')
-                    rdEdx{i} = rdEdy{i+1};
-                else
-                    error( 'Unknown/unsupported layer type' );
-                end
-            else
-                if ~rms
-                    %assume canonical link functions:
-                    rdEdx{i} = -Ryip1;
-                    
-                    if strcmp(layertypes{i}, 'linear')
-                        rdEdx{i} = 2*rdEdx{i};
-                    end
-                else
-
-                    RdEdyip1 = -2*Ryip1;
-                    
-                    if strcmp(layertypes{i}, 'softmax')
-                        error( 'RMS error not supported with softmax output' );
-                    elseif strcmp(layertypes{i}, 'logistic')
-                        rdEdx{i} = RdEdyip1.*yip1.*(1-yip1);
-                    elseif strcmp(layertypes{i}, 'tanh')
-                        rdEdx{i} = RdEdyip1.*(1+yip1).*(1-yip1);
-                    elseif strcmp(layertypes{i}, 'linear')
-                        rdEdx{i} = RdEdyip1;
-                    else
-                        error( 'Unknown/unsupported layer type' );
-                    end
-                    
-                    RdEdyip1 = [];
-                    
-                end
-                
-                Ryip1 = [];
-
-            end
-            rdEdy{i+1} = [];
-
-            rdEdy{i} = Wu{i}'*rdEdx{i};
-
-            yi = conv(y{chunk, i});
-
-            %standard gradient comp:
-            FVW{i} = rdEdx{i}*yi';
-            FVb{i} = sum(rdEdx{i},2);
-            %FVb{i} = rdEdx{i}*mones(sizechunk,1);
-
-            rdEdx{i} = [];
-
-            yip1 = yi;
-            yi = [];
-        end
-        yip1 = [];
-        rdEdy{1} = [];
-
-        FV = FV + pack(FVW, FVb);
-    end
-    
-    FV = FV / conv(numcases);
-    if hybridmode
-        FV = FV * conv(numchunks);
-    end
-    
-    FV = FV + gradchunk*(gradchunk'*V);
-
-    FV = FV - conv(weightcost)*(maskp.*V);
-
-    if autodamp
-        FV = FV - conv(lambda)*V;
-    end
-    
-end
-
-
-    
 function [ll, err] = computeLL(params, in, out, nchunks, tchunk)
 
     ll = 0;
@@ -836,7 +664,6 @@ outputString( '==================== New Run ====================' );
 outputString( '' );
 outputString( ['Start time: ' datestr(now)] );
 outputString( '' );
-outputString( ['Description: ' runDesc] );
 outputString( '' );
 
 
@@ -949,7 +776,6 @@ for epoch = epoch:maxepoch
         dEdy = cell(numchunks, numlayers+1);
         dEdx = cell(numchunks, numlayers);
     end
-
 
     grad = mzeros(psize,1);
     grad2 = mzeros(psize,1);
@@ -1127,116 +953,7 @@ for epoch = epoch:maxepoch
     oldll = ll;
     ll = [];
 
-    
-    
-    %the following commented blocks of code are for checking the matrix
-    %computation functions using finite differences.  If you ever add stuff
-    %to the objective you should check that everything is correct using
-    %methods like these (or something similar).  Be warned that if you use
-    %hessiancsd (available online) you have to be mindful of what your
-    %matrix-vector product implementation does if it's given complex values
-    %in the input vector
-    
-    %for checking F:
-    %gradouter = gradouter - grad*grad'*conv(1/numcases);
-    %{
-    lambda = 0.0;
-    F = mzeros(psize);
-    for j = 1:psize
-
-        ej = mzeros(psize,1);
-        ej(j) = 1;
-
-        F(:,j) = computeFV(ej);
-    end
-
-    Fexact = gradouter;
-
-    1==1;
-    %}
-
-
-    %H computation check
-    %{
-    if epoch == 1
-        lambda = 0;
-
-        Hfinite = hessiancsd(@(p)computeLL(p, indata, outdata), paramsp);
-        %[f,g,Hfinite] = autoHess(paramsp, 0, @(p)computeLL(p, indata, outdata));
-        %Hfinite = 0;
-
-        Hexact = zeros(psize);
-        for j = 1:psize
-            ej = zeros(psize,1);
-            ej(j) = 1;
-
-            Hexact(:,j) = computeHV( ej );
-        end
-
-        1==1;
-    end        
-    %}
-
-    %G computation check:
-    %{
-    estep = 1e-6;
-    Gp = zeros(psize);
-    dY = zeros(size(outdata,1), psize);
-    for n = 1:numcases
-
-        Pbase = computePred( paramsp, conv(indata(:,n)) );
-
-        for j = 1:psize
-
-            Wd = paramsp;
-            Wd(j) = Wd(j) + estep;
-
-            dY(:,j) = (computePred( Wd, conv(indata(:,n)) ) - Pbase)/estep;
-        end
-
-        %softmax:
-        %Gp = Gp + dY'*(diag(y{numlayers+1}(:,n)) - y{numlayers+1}(:,n)*y{numlayers+1}(:,n)')*dY;
-
-        %logistic:
-        if ~rms
-            %Gp = Gp + dY'*(-diag(  y{numlayers+1}(:,n).*(1-y{numlayers+1}(:,n))  ))*dY;
-            Gp = Gp + -2*dY'*dY;
-        else
-            %{
-            yip1 = y{numlayers+1}(:,n);
-
-            dEdyip1 = 2*(outdata(:,n) - yip1); %mult by 2 because we dont include the 1/2 before
-            dd = -2*yip1.*(1-yip1);
-            dEdxi = dEdyip1.*yip1.*(1-yip1);
-
-            Hm = diag(  dEdyip1.*yip1.*(1-yip1).*(1-2*yip1) + dd.*yip1.*(1-yip1)  );
-
-            dEdyip1 = []; dd = [];
-            %}
-
-            yip1 = y{numlayers+1}(:,n);
-            Hm = diag( -2* (yip1.*(1-yip1)).^2 );
-
-            %Hm = -2;
-            %Gp = Gp + dY'*Hm*dY;
-        end
-
-    end
-    Gp = Gp / conv(numcases);
-    
-    lambda = 0.0;
-    G = zeros(psize);
-    for j = 1:psize
-
-        Wd = zeros(psize,1);
-        Wd(j) = 1;
-
-        G(:,j) = computeGV(Wd);
-    end
-    1==1;    
-    %}
-    
-
+  
     %slightly decay the previous change vector before using it as an
     %initialization.  This is something I didn't mention in the paper,
     %and it's not overly important but it can help a lot in some situations 
