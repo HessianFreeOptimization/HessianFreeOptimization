@@ -1,4 +1,14 @@
 function outdata = hf_train()
+% variables
+maxepoch = 100;
+
+
+% the amount to decay the previous search direction for the
+% purposes of initializing the next run of CG.
+decay = 0.95; % Should be 0.95
+
+
+% load datasets.
 tmp = load('ex4data1.mat');
 
 indata = tmp.X';
@@ -6,47 +16,34 @@ outdata = zeros(10,length(tmp.y));
 for i = 1:length(tmp.y)
     outdata(tmp.y(i),i) = 1;
 end
-
-%next try using autodamp = 0 for rho computation.  both for version 6 and
-%versions with rho and cg-backtrack computed on the training set
-
-%mattype = 'gn'; %Curvature matrix: Gauss-Newton.
-
-% tmp = load('digs3pts_1.mat');
-% indata = tmp.bdata';
-% intest = tmp.bdatatest';
-
 perm = randperm(size(indata,2));
 intmp = indata( :, perm );
 outtmp = outdata(:, perm);
 
-% indata = intmp;
-% outdata = outtmp;
+indata = intmp(:, 1:3000);
+outdata = outtmp(:, 1:3000);
 
-indata = intmp(:, 1:2500);
-outdata = outtmp(:, 1:2500);
+intest = intmp(:, 3001:5000);
+outtest = outtmp(:, 3001:5000);
 
-intest = intmp(:, 2501:5000);
-outtest = outtmp(:, 2501:5000);
-%it's an auto-encoder so output is input
-% outtest = outdata;
-% intest = indata;
+%next try using autodamp = 0 for rho computation.  both for version 6 and
+%versions with rho and cg-backtrack computed on the training set
+%mattype = 'gn'; %Curvature matrix: Gauss-Newton.
 
-% decay - the amount to decay the previous search direction for the
-% purposes of initializing the next run of CG.
-decay = 0.95; % Should be 0.95
 
-maxepoch = 100;
+
+
+
+
+
 
 paramsp = [];
 
 layersizes = [25 30];
-layertypes = {'logistic', 'logistic', 'logistic'};
+layertypes = {'logistic', 'logistic', 'softmax'};
 
 %standard L_2 weight-decay:
 weightcost = 2e-5;
-weightcost = 2e-4;
-%weightcost = 1;
 
 % IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
 % `maxiters' (harder).  Also, if your particular application is still not working the next 
@@ -155,8 +152,8 @@ function GV = computeGV(V)
 
             if strcmp(layertypes{i}, 'logistic')
                 Ryip1 = Rxi.*yip1.*(1-yip1);
-            elseif strcmp(layertypes{i}, 'linear')
-                Ryip1 = Rxi;
+            elseif strcmp( layertypes{i}, 'softmax' )
+                Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
             else
                 error( 'Unknown/unsupported layer type' );
             end
@@ -224,17 +221,13 @@ end
     
 
 function [ll, err] = computeLL(params, in, out, nchunks, tchunk)
-
     ll = 0;
-    
     err = 0;
-    
     [W,b] = unpack(params);
     
     if mod( size(in,2), nchunks ) ~= 0
         error( 'Number of chunks doesn''t divide number of cases!' );
     end    
-    
     schunk = size(in,2)/nchunks;
     
     if nargin > 4
@@ -253,14 +246,16 @@ function [ll, err] = computeLL(params, in, out, nchunks, tchunk)
 
             if strcmp(layertypes{i}, 'logistic')
                 yi = 1./(1 + exp(-xi));
-            elseif strcmp(layertypes{i}, 'linear')
-                yi = xi;
+            elseif strcmp(layertypes{i}, 'softmax' )
+                tmp = exp(xi);
+                yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
+                tmp = [];
             end
 
         end
 
-        if strcmp( layertypes{numlayers}, 'linear' )
-            ll = ll + double( -sum(sum((outc - yi).^2)) );
+        if strcmp( layertypes{numlayers}, 'softmax' )
+                ll = ll + double(sum(sum(outc.*log(yi))));
         elseif strcmp( layertypes{numlayers}, 'logistic' )
                 %this version is more stable:
                 ll = ll + double(sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0))))));
@@ -297,8 +292,10 @@ function yi = computePred(params, in) %for checking G computation using finite d
         if i < numlayers
             if strcmp(layertypes{i}, 'logistic')
                 yi = 1./(1 + exp(-xi));
-            elseif strcmp(layertypes{i}, 'linear')
-                yi = xi;
+            elseif strcmp(layertypes{i}, 'softmax' )
+                tmp = exp(xi);
+                yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
+                tmp = [];
             end
         else
             yi = xi;
@@ -335,35 +332,23 @@ lambdarecord = zeros(maxepoch,1);
 times = zeros(maxepoch,1);
 
 totalpasses = 0;
-epoch = 1;
-    
 
-
-%if isempty(paramsp)
-%SPARSE INIT:
-paramsp = zeros(psize,1); %not zeros
-
+% initialization of params.
+paramsp = zeros(psize,1);
 [Wtmp,btmp] = unpack(paramsp);
-
 numconn = 15;
-
 for i = 1:numlayers
-
     initcoeff = 1;
-    %incoming
     for j = 1:layersizes(i+1)
         idx = ceil(layersizes(i)*rand(1,numconn));
         Wtmp{i}(j,idx) = randn(numconn,1)*initcoeff;
     end
-
 end
-
 paramsp = pack(Wtmp, btmp);
 
-
-outputString( '=================================================' );
-
-for epoch = epoch:maxepoch
+outputString('Training..')
+% Main part: train and test.
+for epoch = 1:maxepoch
     tic
 
     targetchunk = mod(epoch-1, 1)+1;
@@ -383,8 +368,8 @@ for epoch = epoch:maxepoch
     %index transition takes place at nonlinearity
     for chunk = 1:1
         
-        y{chunk, 1} = indata(:, ((chunk-1)*numcases+1):(chunk*numcases) );
-        yip1 =  y{chunk, 1} ;
+        y{1, 1} = indata(:, ((1-1)*numcases+1):(1*numcases) );
+        yip1 =  y{1, 1} ;
 
         dEdW = cell(numlayers, 1);
         dEdb = cell(numlayers, 1);
@@ -393,21 +378,20 @@ for epoch = epoch:maxepoch
         dEdb2 = cell(numlayers, 1);
 
         for i = 1:numlayers
-
             yi = yip1;
             yip1 = [];
             xi = Wu{i}*yi + repmat(bu{i}, [1 numcases]);
             yi = [];
-
             if strcmp(layertypes{i}, 'logistic')
                 yip1 = 1./(1 + exp(-xi));
-            elseif strcmp(layertypes{i}, 'linear')
-                yip1 = xi;
+            elseif strcmp( layertypes{i}, 'softmax' )
+                tmp = exp(xi);
+                yip1 = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );
+                tmp = [];
             else
                 error( 'Unknown/unsupported layer type' );
             end
-            
-            y{chunk, i+1} = yip1;
+            y{1, i+1} = yip1;
         end
 
         %back prop:
@@ -416,14 +400,14 @@ for epoch = epoch:maxepoch
         %cross-entropy for softmax:
         %dEdy{numlayers+1} = outdata./y{numlayers+1};
 
-        if chunk ~= targetchunk
-            y{chunk, numlayers+1} = []; %save memory
+        if 1 ~= targetchunk
+            y{1, numlayers+1} = []; %save memory
         end
 
-        outc = outdata(:, ((chunk-1)*numcases+1):(chunk*numcases) );
+        outc = outdata(:, ((1-1)*numcases+1):(1*numcases) );
         
-        if strcmp( layertypes{numlayers}, 'linear' )
-            ll = ll + double( -sum(sum((outc - yip1).^2)) );
+        if strcmp( layertypes{numlayers}, 'softmax' )
+        	ll = ll + double(sum(sum(outc.*log(yip1))));
         elseif strcmp( layertypes{numlayers}, 'logistic' )
             %more stable:
             ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
@@ -432,7 +416,6 @@ for epoch = epoch:maxepoch
         
         
         for i = numlayers:-1:1
-
             if i < numlayers
                 %logistics:
                 if strcmp(layertypes{i}, 'logistic')
@@ -453,10 +436,10 @@ for epoch = epoch:maxepoch
             end
             dEdyi = Wu{i}'*dEdxi;
 
-            yi = y{chunk, i};
+            yi = y{1, i};
 
-            if chunk ~= targetchunk
-                y{chunk, i} = []; %save memory
+            if 1 ~= targetchunk
+                y{1, i} = []; %save memory
             end
 
             %standard gradient comp:
@@ -477,7 +460,7 @@ for epoch = epoch:maxepoch
         end
         yip1 = [];  dEdyip1 = [];
 
-        if chunk == targetchunk
+        if 1 == targetchunk
             gradchunk = pack(dEdW, dEdb);
             grad2chunk = pack(dEdW2, dEdb2);
         end
@@ -504,26 +487,16 @@ for epoch = epoch:maxepoch
     
     ll = ll - 0.5*weightcost*double(paramsp'*(maskp.*paramsp));
     
-    
     oldll = ll;
     ll = [];
-
   
     %slightly decay the previous change vector before using it as an
-    %initialization.  This is something I didn't mention in the paper,
-    %and it's not overly important but it can help a lot in some situations 
-    %so you should probably use it
+    %initialization.  This is something I didn't mention in the paper.
     ch = decay*ch;
 
     %maxiters is the most important variable that you should try
     %tweaking.  While the ICML paper had maxiters=250 for everything
-    %I've since found out that this wasn't optimal.  For example, with
-    %pre-trained weights for CURVES, maxiters=150 is better.  And for
-    %the FACES dataset you should use something like maxiters=100.
-    %Setting it too small or large can be bad to various degrees.
-    %Currently I'm trying to automate"this choice, but it's quite hard
-    %to come up with a *robust* heuristic for doing this.
-
+    %I've since found out that this wasn't optimal.
     maxiters = 250;
     miniters = 1;
     outputString(['maxiters = ' num2str(maxiters) '; miniters = ' num2str(miniters)]);
@@ -555,12 +528,10 @@ for epoch = epoch:maxepoch
     [ll, err] = computeLL(paramsp + p, indata, outdata, 1);
     for j = (length(chs)-1):-1:1
         [lowll, lowerr] = computeLL(paramsp + chs{j}, indata, outdata, 1);
-
         if ll > lowll
             j = j+1;
             break;
         end
-
         ll = lowll;
         err = lowerr;
     end
@@ -570,7 +541,6 @@ for epoch = epoch:maxepoch
     
     p = chs{j};
     outputString( ['Chose iters : ' num2str(iterses(j))] );
-
 
     [ll_chunk, err_chunk] = computeLL(paramsp + chs{j}, indata, outdata, 1, targetchunk);
     [oldll_chunk, olderr_chunk] = computeLL(paramsp, indata, outdata, 1, targetchunk);
@@ -591,10 +561,8 @@ for epoch = epoch:maxepoch
 
     chs = [];
 
-
     %bog-standard back-tracking line-search implementation:
     rate = 1.0;
-
     c = 10^(-2);
     j = 0;
     while j < 60
@@ -604,11 +572,9 @@ for epoch = epoch:maxepoch
         else
             rate = 0.8*rate;
             j = j + 1;
-            %outputString('#');
         end
 
-        %this is computed on the whole dataset.  If this is not possible you can
-        %use another set such the test set or a seperate validation set
+        %this is computed on the whole dataset.
         [ll, err] = computeLL(paramsp + rate*p, indata, outdata, 1);
     end
 
@@ -621,7 +587,6 @@ for epoch = epoch:maxepoch
 
     outputString( ['Number of reductions : ' num2str(j) ', chosen rate: ' num2str(rate)] );
 
-
     %the damping heuristic (also very standard in optimization):
     if autodamp
         if rho < 0.25 || isnan(rho)
@@ -632,7 +597,6 @@ for epoch = epoch:maxepoch
         outputString(['New lambda: ' num2str(lambda)]);
     end
         
-
     %Parameter update:
     paramsp = paramsp + rate*p;
 
@@ -648,11 +612,10 @@ for epoch = epoch:maxepoch
     errrecord(epoch,2) = err_test;
     outputString( ['TEST Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
     outputString( '' );
-
 end
 
-outputString( ['Total time: ' num2str(sum(times)) ] );
 
+outputString( ['Total time: ' num2str(sum(times)) ] );
 end
 
 function outputString( s )
