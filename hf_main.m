@@ -1,6 +1,8 @@
 clc; clear; close all;
-maxepoch = 30;
-[llrecord, errrecord] = hf_train(maxepoch);
+maxIter = 100;
+algorithm = 'hf';
+%algorithm = 'lbfgs';
+[llrecord, errrecord] = hf_train(algorithm, maxIter);
 
 figure('color', [1 1 1]);
 plot(-llrecord(:,1),'rx-');

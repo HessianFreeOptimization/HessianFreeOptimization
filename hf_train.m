@@ -1,7 +1,7 @@
-function [llrecord, errrecord] = hf_train(maxepoch)
+function [llrecord, errrecord] = hf_train(algorithm, maxIter)
 % variables
-llrecord = zeros(maxepoch,2);
-errrecord = zeros(maxepoch,2);
+llrecord = zeros(maxIter,2);
+errrecord = zeros(maxIter,2);
 
 %standard L_2 weight-decay:
 weight_decay = 2e-5;
@@ -17,12 +17,6 @@ decay = 0.95; % Should be 0.95
 % network structure
 layersizes = [25 30];
 layertypes = {'logistic', 'logistic', 'softmax'};
-
-%
-loss_train_array = zeros(1,maxepoch); 
-loss_test_array = zeros(1,maxepoch); 
-error_train_array = zeros(1,maxepoch); 
-error_test_array = zeros(1,maxepoch);
 
 % load datasets.
 tmp = load('ex4data1.mat');
@@ -113,65 +107,64 @@ function GV = computeGV(V)
     [VWu, Vbu] = unpack(V);
     GV = zeros(psize,1);
 
-    for chunk = targetchunk
-        %application of R operator
-        rdEdy = cell(numlayers+1,1);
-        rdEdx = cell(numlayers, 1);
-        GVW = cell(numlayers,1);
-        GVb = cell(numlayers,1);
-        Rx = cell(numlayers,1);
-        Ry = cell(numlayers,1);
-        yip1 = y{chunk, 1};
-        %forward prop:
-        Ryip1 = zeros(layersizes(1), numcases);
-        for i = 1:numlayers
-            Ryi = Ryip1;
-            Ryip1 = [];
-            yi = yip1;
-            yip1 = [];
-            Rxi = Wu{i}*Ryi + VWu{i}*yi + repmat(Vbu{i}, [1 numcases]);
-            yip1 = y{chunk, i+1};
-            if strcmp(layertypes{i}, 'logistic')
-                Ryip1 = Rxi.*yip1.*(1-yip1);
-            elseif strcmp( layertypes{i}, 'softmax' )
-                Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
-            end
-            Rxi = [];
-        end
-        
-        %Backwards pass.  This is where things start to differ from computeHV
-        %note that the lower-case r notation doesn't really make sense.
-        for i = numlayers:-1:1
-            if i < numlayers
-                %logistics:
-                if strcmp(layertypes{i}, 'logistic')
-                    rdEdx{i} = rdEdy{i+1}.*yip1.*(1-yip1);
-                end
-            else
-                %assume canonical link functions:
-                rdEdx{i} = -Ryip1;
-                if strcmp(layertypes{i}, 'linear')
-                    rdEdx{i} = 2*rdEdx{i};
-                end
-                Ryip1 = [];
-            end
-            rdEdy{i+1} = [];
-            rdEdy{i} = Wu{i}'*rdEdx{i};
-
-            yi = y{chunk, i};
-
-            GVW{i} = rdEdx{i}*yi';
-            GVb{i} = sum(rdEdx{i},2);
-
-            rdEdx{i} = [];
-
-            yip1 = yi;
-            yi = [];
-        end
+    %application of R operator
+    rdEdy = cell(numlayers+1,1);
+    rdEdx = cell(numlayers, 1);
+    GVW = cell(numlayers,1);
+    GVb = cell(numlayers,1);
+    Rx = cell(numlayers,1);
+    Ry = cell(numlayers,1);
+    yip1 = y{1, 1};
+    %forward prop:
+    Ryip1 = zeros(layersizes(1), numcases);
+    for i = 1:numlayers
+        Ryi = Ryip1;
+        Ryip1 = [];
+        yi = yip1;
         yip1 = [];
-        rdEdy{1} = [];
-        GV = GV + pack(GVW, GVb);
+        Rxi = Wu{i}*Ryi + VWu{i}*yi + repmat(Vbu{i}, [1 numcases]);
+        yip1 = y{1, i+1};
+        if strcmp(layertypes{i}, 'logistic')
+            Ryip1 = Rxi.*yip1.*(1-yip1);
+        elseif strcmp( layertypes{i}, 'softmax' )
+            Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
+        end
+        Rxi = [];
     end
+
+    %Backwards pass.  This is where things start to differ from computeHV
+    %note that the lower-case r notation doesn't really make sense.
+    for i = numlayers:-1:1
+        if i < numlayers
+            %logistics:
+            if strcmp(layertypes{i}, 'logistic')
+                rdEdx{i} = rdEdy{i+1}.*yip1.*(1-yip1);
+            end
+        else
+            %assume canonical link functions:
+            rdEdx{i} = -Ryip1;
+            if strcmp(layertypes{i}, 'linear')
+                rdEdx{i} = 2*rdEdx{i};
+            end
+            Ryip1 = [];
+        end
+        rdEdy{i+1} = [];
+        rdEdy{i} = Wu{i}'*rdEdx{i};
+
+        yi = y{1, i};
+
+        GVW{i} = rdEdx{i}*yi';
+        GVb{i} = sum(rdEdx{i},2);
+
+        rdEdx{i} = [];
+
+        yip1 = yi;
+        yi = [];
+    end
+    yip1 = [];
+    rdEdy{1} = [];
+    GV = GV + pack(GVW, GVb);
+    
     GV = GV / numcases;
 
     GV = GV - weight_decay*(maskp.*V);
@@ -214,11 +207,9 @@ function [ll, err] = computeLL(params, in, out)
     ll = ll - 0.5*weight_decay*params'*(maskp.*params);
 end
 
-
 maskp = ones(psize,1);
 [maskW, maskb] = unpack(maskp);
 maskp = pack(maskW,maskb);
-
 
 indata = single(indata);
 outdata = single(outdata);
@@ -229,9 +220,8 @@ ch = zeros(psize, 1);
 
 lambda = initlambda;
 
-
-lambdarecord = zeros(maxepoch,1);
-times = zeros(maxepoch,1);
+lambdarecord = zeros(maxIter,1);
+times = zeros(maxIter,1);
 
 totalpasses = 0;
 
@@ -250,237 +240,249 @@ paramsp = pack(Wtmp, btmp);
 
 outputString('================Training================')
 % Main part: train and test.
-for epoch = 1:maxepoch
-    tic
-    targetchunk = 1;
-    [Wu, bu] = unpack(paramsp);
+
+if strcmp(algorithm, 'hf')
+    for epoch = 1:maxIter
+        tic
+        outputString(['epoch: ' num2str(epoch)])
+        [Wu, bu] = unpack(paramsp);
 
 
-    y = cell(1, numlayers+1);
-    x = cell(1, numlayers+1);
+        y = cell(1, numlayers+1);
+        x = cell(1, numlayers+1);
 
-    grad = zeros(psize,1);
-    grad2 = zeros(psize,1);
-    
-    ll = 0;
+        grad = zeros(psize,1);
+        grad2 = zeros(psize,1);
 
-    %forward prop:
-    %index transition takes place at nonlinearity
-    y{1, 1} = indata(:, 1:numcases );
-    yip1 =  y{1, 1} ;
+        ll = 0;
 
-    dEdW = cell(numlayers, 1);
-    dEdb = cell(numlayers, 1);
+        %forward prop:
+        %index transition takes place at nonlinearity
+        y{1, 1} = indata(:, 1:numcases );
+        yip1 =  y{1, 1} ;
 
-    dEdW2 = cell(numlayers, 1);
-    dEdb2 = cell(numlayers, 1);
+        dEdW = cell(numlayers, 1);
+        dEdb = cell(numlayers, 1);
 
-    for i = 1:numlayers
-        yi = yip1;
-        yip1 = [];
-        xi = Wu{i}*yi + repmat(bu{i}, [1 numcases]);
-        yi = [];
-        if strcmp(layertypes{i}, 'logistic')
-            yip1 = 1./(1 + exp(-xi));
-        elseif strcmp( layertypes{i}, 'softmax' )
-            tmp = exp(xi);
-            yip1 = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );
-            tmp = [];
-        end
-        y{1, i+1} = yip1;
-    end
+        dEdW2 = cell(numlayers, 1);
+        dEdb2 = cell(numlayers, 1);
 
-    outc = outdata(:, 1:numcases );
-
-    if strcmp( layertypes{numlayers}, 'softmax' )
-        ll = ll + sum(sum(outc.*log(yip1)));
-    elseif strcmp( layertypes{numlayers}, 'logistic' )
-        ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
-    end
-    xi = [];
-
-    for i = numlayers:-1:1
-        if i < numlayers
+        for i = 1:numlayers
+            yi = yip1;
+            yip1 = [];
+            xi = Wu{i}*yi + repmat(bu{i}, [1 numcases]);
+            yi = [];
             if strcmp(layertypes{i}, 'logistic')
-                dEdxi = dEdyip1.*yip1.*(1-yip1);
+                yip1 = 1./(1 + exp(-xi));
+            elseif strcmp( layertypes{i}, 'softmax' )
+                tmp = exp(xi);
+                yip1 = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );
+                tmp = [];
             end
-        else
-            dEdxi = outc - yip1; %simplified due to canonical link
-            outc = [];
+            y{1, i+1} = yip1;
         end
-        dEdyi = Wu{i}'*dEdxi;
 
-        yi = y{1, i};
+        outc = outdata(:, 1:numcases );
 
-        %standard gradient comp:
-        dEdW{i} = dEdxi*yi';
-        dEdb{i} = sum(dEdxi,2);
+        if strcmp( layertypes{numlayers}, 'softmax' )
+            ll = ll + sum(sum(outc.*log(yip1)));
+        elseif strcmp( layertypes{numlayers}, 'logistic' )
+            ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
+        end
+        xi = [];
 
-        %gradient squared comp:
-        dEdW2{i} = (dEdxi.^2)*(yi.^2)';
-        dEdb2{i} = sum(dEdxi.^2,2);
+        for i = numlayers:-1:1
+            if i < numlayers
+                if strcmp(layertypes{i}, 'logistic')
+                    dEdxi = dEdyip1.*yip1.*(1-yip1);
+                end
+            else
+                dEdxi = outc - yip1; %simplified due to canonical link
+                outc = [];
+            end
+            dEdyi = Wu{i}'*dEdxi;
+
+            yi = y{1, i};
+
+            %standard gradient comp:
+            dEdW{i} = dEdxi*yi';
+            dEdb{i} = sum(dEdxi,2);
+
+            %gradient squared comp:
+            dEdW2{i} = (dEdxi.^2)*(yi.^2)';
+            dEdb2{i} = sum(dEdxi.^2,2);
+
+            dEdxi = [];
+
+            dEdyip1 = dEdyi;
+            dEdyi = [];
+
+            yip1 = yi;
+            yi = [];
+        end
+        yip1 = [];  dEdyip1 = [];
+
+        gradchunk = pack(dEdW, dEdb);
+        grad2chunk = pack(dEdW2, dEdb2);
+
+        grad = grad + pack(dEdW, dEdb);
+        grad2 = grad2 + pack(dEdW2, dEdb2);
+
+
+        dEdW = []; dEdb = []; dEdW2 = []; dEdb2 = [];
+
+        grad = grad / numcases;
+        grad = grad - weight_decay*(maskp.*paramsp);
+
+        grad2 = grad2 / numcases;
+
+        gradchunk = gradchunk/numcases - weight_decay*(maskp.*paramsp);
+        grad2chunk = grad2chunk/numcases;
+
+        ll = ll / numcases;
+
+        ll = ll - 0.5*weight_decay*paramsp'*(maskp.*paramsp);
+
+        oldll = ll;
+        ll = [];
+
+        %slightly decay the previous change vector before using it as an
+        %initialization.  This is something I didn't mention in the paper.
+        ch = decay*ch;
+
+        %maxiters is the most important variable that you should try
+        %tweaking.  While the ICML paper had maxiters=250 for everything
+        %I've since found out that this wasn't optimal.
+        maxiters = 250;
+        miniters = 1;
+        %outputString(['maxiters = ' num2str(maxiters) '; miniters = ' num2str(miniters)]);
+
+        %preconditioning vector.  Feel free to experiment with this.  For
+        %some problems (like the RNNs) this style of diaognal precondition
+        %doesn't seem to be beneficial.  Probably because the parameters don't
+        %exibit any obvious "axis-aligned" scaling issues like they do with
+        %standard deep neural nets
+        precon = (grad2 + ones(psize,1)*lambda + maskp*weight_decay).^(3/4);
+        %precon = ones(psize,1);
+
+        [chs, iterses] = conjgrad_1( @(V)-computeGV(V), grad, ch, ceil(maxiters), ceil(miniters), precon );
+
+        ch = chs{end};
+        iters = iterses(end);
+
+        totalpasses = totalpasses + iters;
+        %outputString(['CG steps used: ' num2str(iters) ', total is: ' num2str(totalpasses) ]);
+
+        p = ch;
+        outputString( ['CG steps used: ' num2str(iters) ', total is: ' num2str(totalpasses) ', ch magnitude : ' num2str(norm(ch))] );
+
+        j = length(chs);
+
+
+        %"CG-backtracking":
+        %full training set version:
+        [ll, err] = computeLL(paramsp + p, indata, outdata);
+        for j = (length(chs)-1):-1:1
+            [lowll, lowerr] = computeLL(paramsp + chs{j}, indata, outdata);
+            if ll > lowll
+                j = j+1;
+                break;
+            end
+            ll = lowll;
+            err = lowerr;
+        end
+        if isempty(j)
+            j = 1;
+        end
+
+        p = chs{j};
+        outputString( ['Chose iters : ' num2str(iterses(j))] );
+
+        [ll_chunk, err_chunk] = computeLL(paramsp + chs{j}, indata, outdata);
+        [oldll_chunk, olderr_chunk] = computeLL(paramsp, indata, outdata);
+
+        %disabling damping when computing rho is something I'm not 100% sure
+        autodamp = 0;
+        denom = -0.5*chs{j}'*computeGV(chs{j}) - grad'*chs{j};
+        autodamp = 1;
+        rho = (oldll_chunk - ll_chunk)/denom;
+        if oldll_chunk - ll_chunk > 0
+            rho = -Inf;
+        end
+
+        outputString( ['rho = ' num2str(rho)] );
+
+        chs = [];
+
+        % back-tracking line-search
+        step = 1.0;
+        c = 10^(-2);
+        j = 0;
+        while j < 60
+            if ll >= oldll + c*step*grad'*p
+                break;
+            else
+                step = 0.8*step;
+                j = j + 1;
+            end
+            [ll, err] = computeLL(paramsp + step*p, indata, outdata);
+        end
+
+        if j == 60
+            %completely reject the step
+            j = Inf;
+            step = 0.0;
+            ll = oldll;
+        end
+
+        outputString( ['#backtracking: ' num2str(j) ', step size: ' num2str(step)] );
+
+        % damping heuristic
+        if rho < 0.25 || isnan(rho)
+            lambda = lambda*boost;
+        elseif rho > 0.75
+            lambda = lambda*drop;
+        end
+        outputString(['New lambda: ' num2str(lambda)]);
+
+        %Parameter update:
+        paramsp = paramsp + step*p;
+
+        lambdarecord(epoch,1) = lambda;
+
+        llrecord(epoch,1) = ll;
+        errrecord(epoch,1) = err;
+
+        outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
+
+        [ll_test, err_test] = computeLL(paramsp, intest, outtest);
+        llrecord(epoch,2) = ll_test;
+        errrecord(epoch,2) = err_test;
+        outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
+        outputString( '' );
+
+        times(epoch) = toc;
+    end
+
+elseif strcmp(algorithm, 'lbfgs')
+    for epoch = 1:maxIter
+        tic
+        outputString(['epoch: ' num2str(epoch)])
+        [Wu, bu] = unpack(paramsp);
         
-        dEdxi = [];
-
-        dEdyip1 = dEdyi;
-        dEdyi = [];
-
-        yip1 = yi;
-        yi = [];
+        
+        
+        
+        
+        times(epoch) = toc;
     end
-    yip1 = [];  dEdyip1 = [];
-
-    gradchunk = pack(dEdW, dEdb);
-    grad2chunk = pack(dEdW2, dEdb2);
-
-    grad = grad + pack(dEdW, dEdb);
-    grad2 = grad2 + pack(dEdW2, dEdb2);
-
-
-    dEdW = []; dEdb = []; dEdW2 = []; dEdb2 = [];
-
-    
-    grad = grad / numcases;
-    grad = grad - weight_decay*(maskp.*paramsp);
-    
-    grad2 = grad2 / numcases;
-    
-    gradchunk = gradchunk/numcases - weight_decay*(maskp.*paramsp);
-    grad2chunk = grad2chunk/numcases;
-    
-    ll = ll / numcases;
-    
-    ll = ll - 0.5*weight_decay*paramsp'*(maskp.*paramsp);
-    
-    oldll = ll;
-    ll = [];
-  
-    %slightly decay the previous change vector before using it as an
-    %initialization.  This is something I didn't mention in the paper.
-    ch = decay*ch;
-
-    %maxiters is the most important variable that you should try
-    %tweaking.  While the ICML paper had maxiters=250 for everything
-    %I've since found out that this wasn't optimal.
-    maxiters = 250;
-    miniters = 1;
-    outputString(['maxiters = ' num2str(maxiters) '; miniters = ' num2str(miniters)]);
-
-    %preconditioning vector.  Feel free to experiment with this.  For
-    %some problems (like the RNNs) this style of diaognal precondition
-    %doesn't seem to be beneficial.  Probably because the parameters don't
-    %exibit any obvious "axis-aligned" scaling issues like they do with
-    %standard deep neural nets
-    precon = (grad2 + ones(psize,1)*lambda + maskp*weight_decay).^(3/4);
-    %precon = ones(psize,1);
-
-    [chs, iterses] = conjgrad_1( @(V)-computeGV(V), grad, ch, ceil(maxiters), ceil(miniters), precon );
-
-    ch = chs{end};
-    iters = iterses(end);
-
-    totalpasses = totalpasses + iters;
-    outputString(['CG steps used: ' num2str(iters) ', total is: ' num2str(totalpasses) ]);
-
-    p = ch;
-    outputString( ['ch magnitude : ' num2str(norm(ch))] );
-
-    j = length(chs);
-    
-
-    %"CG-backtracking":
-    %full training set version:
-    [ll, err] = computeLL(paramsp + p, indata, outdata);
-    for j = (length(chs)-1):-1:1
-        [lowll, lowerr] = computeLL(paramsp + chs{j}, indata, outdata);
-        if ll > lowll
-            j = j+1;
-            break;
-        end
-        ll = lowll;
-        err = lowerr;
-    end
-    if isempty(j)
-        j = 1;
-    end
-    
-    p = chs{j};
-    outputString( ['Chose iters : ' num2str(iterses(j))] );
-
-    [ll_chunk, err_chunk] = computeLL(paramsp + chs{j}, indata, outdata);
-    [oldll_chunk, olderr_chunk] = computeLL(paramsp, indata, outdata);
-
-    %disabling damping when computing rho is something I'm not 100% sure
-    autodamp = 0;
-    denom = -0.5*chs{j}'*computeGV(chs{j}) - grad'*chs{j};
-    autodamp = 1;
-    rho = (oldll_chunk - ll_chunk)/denom;
-    if oldll_chunk - ll_chunk > 0
-        rho = -Inf;
-    end
-
-    outputString( ['rho = ' num2str(rho)] );
-
-    chs = [];
-
-    %bog-standard back-tracking line-search implementation:
-    step = 1.0;
-    c = 10^(-2);
-    j = 0;
-    while j < 60
-        if ll >= oldll + c*step*grad'*p
-            break;
-        else
-            step = 0.8*step;
-            j = j + 1;
-        end
-        %computed on the whole dataset.
-        [ll, err] = computeLL(paramsp + step*p, indata, outdata);
-    end
-
-    if j == 60
-        %completely reject the step
-        j = Inf;
-        step = 0.0;
-        ll = oldll;
-    end
-
-    outputString( ['Number of backtracking : ' num2str(j) ', chosen step: ' num2str(step)] );
-
-    % damping heuristic
-    if rho < 0.25 || isnan(rho)
-        lambda = lambda*boost;
-    elseif rho > 0.75
-        lambda = lambda*drop;
-    end
-    outputString(['New lambda: ' num2str(lambda)]);
-
-    %Parameter update:
-    paramsp = paramsp + step*p;
-
-    lambdarecord(epoch,1) = lambda;
-
-    llrecord(epoch,1) = ll;
-    errrecord(epoch,1) = err;
-    times(epoch) = toc;
-    outputString( ['epoch: ' num2str(epoch) ', Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
-    loss_train_array(epoch) = -ll;
-    error_train_array(epoch) = err;
-    
-    [ll_test, err_test] = computeLL(paramsp, intest, outtest);
-    llrecord(epoch,2) = ll_test;
-    errrecord(epoch,2) = err_test;
-    outputString( ['TEST Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
-    outputString( '' );
-    loss_train_array(epoch) = -ll_test;
-    error_train_array(epoch) = err_test;
 end
 
 outputString( ['Total time: ' num2str(sum(times)) ] );
 end
-
+% function required by 'hf'
 function outputString( s )
-    fprintf( 1, '%s\n', s );
+    fprintf( '%s\n', s );
 end
 
 function v = vec(A)
