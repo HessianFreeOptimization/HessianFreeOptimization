@@ -24,7 +24,6 @@ outtest = intest;
 tmp = load('digs3pts_1.mat');
 indata = tmp.bdata';
 intest = tmp.bdatatest';
-clear tmp
 
 perm = randperm(size(indata,2));
 indata = indata( :, perm );
@@ -39,7 +38,7 @@ decay = 0.95;
 
 errtype = 'L2'; %report the L2-norm error (in addition to the quantity actually being optimized, i.e. the log-likelihood)
 
-maxepoch = 10;
+maxepoch = 20;
 
 paramsp = [];
 
@@ -47,8 +46,8 @@ layersizes = [40 6 40];
 %Note that the code layer uses linear units
 layertypes = {'logistic', 'linear', 'logistic', 'logistic'};
 
-numchunks = 4;
-numchunks_test = 4;
+numchunks = 1;
+numchunks_test = 1;
 
 %standard L_2 weight-decay:
 weightcost = 2e-5;
@@ -63,9 +62,7 @@ weightcost = 2e-5;
 % paramsp - initial parameters in the form of a vector (can be []).  If
 % this, or the arguments Win,bin are empty, the 'sparse initialization'
 % technique is used
-%
-% Win, bin - initial parameters in their matrix forms (can be [])
-%
+
 % maxepoch - maximum number of 'epochs' (outer iteration of HF).  There is no termination condition
 % for the optimizer and usually I just stop it by issuing a break command
 %
@@ -83,8 +80,6 @@ weightcost = 2e-5;
 % matrix-vector products, since you only have to do the former once per iteration
 % of the outer loop.
 %
-% intest/outtest -  test data
-%
 % numchunks_test - while the test set isn't used for matrix-vector
 % products, you still may want to partition it so that it can be processed
 % in pieces on the GPU instead of all at once.
@@ -96,12 +91,6 @@ weightcost = 2e-5;
 % the default and forces it to use squared-error.  Note that even if what you
 % care about is minimizing squared error it's sometimes still better
 % to run on the optimizer with the canonical error
-%
-% errtype - in addition to displaying the objective function (log-likelihood) you may also
-% want to keep track of another metric like squared error when you train
-% deep auto-encoders.  This can be 'L2' for squared error, 'class' for
-% classification error, or 'none' for nothing.  It should be easy enough to
-% add your own type of error should you need one
 %
 % weightcost - the strength of the l_2 prior on the weights
 %
@@ -395,17 +384,7 @@ function [ll, err] = computeLL(params, in, out, nchunks, tchunk)
                 ll = ll + double(sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0))))));
         end
         xi = [];
-
-        if strcmp( errtype, 'class' )
-            %err = 1 - double(sum( sum(outc.*yi,1) == max(yi,[],1) ) )/size(in,2);
-            err = err + double(sum( sum(outc.*yi,1) ~= max(yi,[],1) ) ) / size(in,2);
-        elseif strcmp( errtype, 'L2' )
-            err = err + double(sum(sum((yi - outc).^2, 1))) / size(in,2);
-        elseif strcmp( errtype, 'none')
-            %do nothing
-        else
-            error( 'Unrecognized error type' );
-        end        
+   
         outc = [];
         yi = [];
     end
@@ -801,14 +780,12 @@ for epoch = epoch:maxepoch
     llrecord(epoch,1) = ll;
     errrecord(epoch,1) = err;
     times(epoch) = toc;
-    outputString( ['epoch: ' num2str(epoch) ', Log likelihood: ' num2str(ll) ', error rate: ' num2str(err) ] );
+    outputString( ['epoch: ' num2str(epoch) ', Log likelihood: ' num2str(ll)] );
 
     [ll_test, err_test] = computeLL(paramsp, intest, outtest, numchunks_test);
     llrecord(epoch,2) = ll_test;
     errrecord(epoch,2) = err_test;
-    outputString( ['TEST Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test) ] );
-    
-    outputString( ['Error rate difference (test - train): ' num2str(err_test-err)] );
+    outputString( ['TEST Log likelihood: ' num2str(ll_test)] );
     
     outputString( '' );
 
