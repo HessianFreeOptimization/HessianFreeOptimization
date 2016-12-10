@@ -41,14 +41,12 @@ outtest = outtmp(:, 3001:5000);
 %versions with rho and cg-backtrack computed on the training set
 %mattype = 'gn'; %Curvature matrix: Gauss-Newton.
 
-
 % IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
 % `maxiters' (harder).  Also, if your particular application is still not working the next 
 % most likely way to fix it is tweaking the variable `initcoeff' which controls
 % overall magnitude of the initial random weights.  Please don't treat this code like a black-box,
 % get a negative result, and then publish a paper about how the approach doesn't work :)  And if
 % you are running into difficulties feel free to e-mail me at james.martens@gmail.com
-
 
 %Fortunately after only 1 'epoch'
 %you can often tell if you've made a bad choice.  The value of rho should lie
@@ -205,54 +203,105 @@ for i = 1:numlayers
 end
 paramsp = pack(Wtmp, btmp);
 
+
+
+
+
+function grad = calcu_grad(paramsp)
+    [Wu, bu] = unpack(paramsp);
+    y = cell(1, numlayers+1);
+    %ll = 0;
+    %forward prop:
+    y{1, 1} = indata(:, 1:numcases );
+    yip1 =  y{1, 1} ;
+    dEdW = cell(numlayers, 1);
+    dEdb = cell(numlayers, 1);
+
+    for i = 1:numlayers
+        yi = yip1;
+        xi = Wu{i}*yi + repmat(bu{i}, [1 numcases]);
+        if strcmp(layertypes{i}, 'logistic')
+            yip1 = 1./(1 + exp(-xi));
+        elseif strcmp( layertypes{i}, 'softmax' )
+            tmp = exp(xi);
+            yip1 = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );
+        end
+        y{1, i+1} = yip1;
+    end
+    outc = outdata(:, 1:numcases );
+
+%     if strcmp( layertypes{numlayers}, 'softmax' )
+%         ll = ll + sum(sum(outc.*log(yip1)));
+%     elseif strcmp( layertypes{numlayers}, 'logistic' )
+%         ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
+%     end
+
+    for i = numlayers:-1:1
+        if i < numlayers
+            if strcmp(layertypes{i}, 'logistic')
+                dEdxi = dEdyip1.*yip1.*(1-yip1);
+            end
+        else
+            dEdxi = outc - yip1; %simplified due to canonical link
+        end
+        dEdyi = Wu{i}'*dEdxi;
+
+        yi = y{1, i};
+
+        %standard gradient comp:
+        dEdW{i} = dEdxi*yi';
+        dEdb{i} = sum(dEdxi,2);
+
+        dEdyip1 = dEdyi;
+        yip1 = yi;
+    end
+
+    % psize x 1
+    grad = pack(dEdW, dEdb);
+    grad = grad / numcases;
+    grad = grad - weight_decay*(paramsp);
+end
+
+
 outputString('================Training================')
 % Main part: train and test.
+
+
+
 
 if strcmp(algorithm, 'hf')
     for epoch = 1:maxIter
         tic
         outputString(['epoch: ' num2str(epoch)])
         [Wu, bu] = unpack(paramsp);
-
         y = cell(1, numlayers+1);
-        x = cell(1, numlayers+1);
-
         ll = 0;
-
-        %forward prop:
-        %index transition takes place at nonlinearity
+        
+        % forward prop:
         y{1, 1} = indata(:, 1:numcases );
         yip1 =  y{1, 1} ;
-
         dEdW = cell(numlayers, 1);
         dEdb = cell(numlayers, 1);
-
         dEdW2 = cell(numlayers, 1);
         dEdb2 = cell(numlayers, 1);
 
         for i = 1:numlayers
             yi = yip1;
-            %yip1 = [];
             xi = Wu{i}*yi + repmat(bu{i}, [1 numcases]);
-            %yi = [];
             if strcmp(layertypes{i}, 'logistic')
                 yip1 = 1./(1 + exp(-xi));
             elseif strcmp( layertypes{i}, 'softmax' )
                 tmp = exp(xi);
                 yip1 = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );
-             %   tmp = [];
             end
             y{1, i+1} = yip1;
         end
-
         outc = outdata(:, 1:numcases );
-
         if strcmp( layertypes{numlayers}, 'softmax' )
             ll = ll + sum(sum(outc.*log(yip1)));
         elseif strcmp( layertypes{numlayers}, 'logistic' )
             ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
         end
-
         for i = numlayers:-1:1
             if i < numlayers
                 if strcmp(layertypes{i}, 'logistic')
@@ -262,28 +311,21 @@ if strcmp(algorithm, 'hf')
                 dEdxi = outc - yip1; %simplified due to canonical link
             end
             dEdyi = Wu{i}'*dEdxi;
-
             yi = y{1, i};
-
             %standard gradient comp:
             dEdW{i} = dEdxi*yi';
             dEdb{i} = sum(dEdxi,2);
-
             %gradient squared comp:
             dEdW2{i} = (dEdxi.^2)*(yi.^2)';
             dEdb2{i} = sum(dEdxi.^2,2);
-
             dEdyip1 = dEdyi;
             yip1 = yi;
         end
-
         % psize x 1
         grad = pack(dEdW, dEdb);
         grad2 = pack(dEdW2, dEdb2);
-
         grad = grad / numcases;
         grad = grad - weight_decay*(paramsp);
-
         grad2 = grad2 / numcases;
         
         ll = ll / numcases;
@@ -299,13 +341,8 @@ if strcmp(algorithm, 'hf')
         %I've since found out that this wasn't optimal.
         maxiters = 250;
         miniters = 1;
-        %outputString(['maxiters = ' num2str(maxiters) '; miniters = ' num2str(miniters)]);
 
-        %preconditioning vector.  Feel free to experiment with this.  For
-        %some problems (like the RNNs) this style of diaognal precondition
-        %doesn't seem to be beneficial.  Probably because the parameters don't
-        %exibit any obvious "axis-aligned" scaling issues like they do with
-        %standard deep neural nets
+        %TODO: preconditioning vector.  Feel free to experiment with this.
         precon = (grad2 + ones(psize,1)*lambda + weight_decay).^(3/4);
         %precon = ones(psize,1);
 
@@ -397,86 +434,85 @@ if strcmp(algorithm, 'hf')
     end
 
 elseif strcmp(algorithm, 'lbfgs')
+    tic
+    
+    grad = calcu_grad(paramsp);
+    [ll, err] = computeLL(paramsp, indata, outdata);
+    
+    m = 7;
+    l = size(paramsp,1);
+    bfgs_s = [];
+    bfgs_y = [];
     for epoch = 1:maxIter
-        tic
-        outputString(['epoch: ' num2str(epoch)])
-        [Wu, bu] = unpack(paramsp);
-
-        y = cell(1, numlayers+1);
-        x = cell(1, numlayers+1);
-
-        ll = 0;
-
-        %forward prop:
-        %index transition takes place at nonlinearity
-        y{1, 1} = indata(:, 1:numcases );
-        yip1 =  y{1, 1} ;
-
-        dEdW = cell(numlayers, 1);
-        dEdb = cell(numlayers, 1);
-
-        dEdW2 = cell(numlayers, 1);
-        dEdb2 = cell(numlayers, 1);
-
-        for i = 1:numlayers
-            yi = yip1;
-            %yip1 = [];
-            xi = Wu{i}*yi + repmat(bu{i}, [1 numcases]);
-            %yi = [];
-            if strcmp(layertypes{i}, 'logistic')
-                yip1 = 1./(1 + exp(-xi));
-            elseif strcmp( layertypes{i}, 'softmax' )
-                tmp = exp(xi);
-                yip1 = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );
-             %   tmp = [];
+        bfgs_q = -grad;
+        bfgs_p = bfgs_q;
+        if epoch ~= 1
+            alpha = zeros(1,m);
+            for i = size(bfgs_s,2):-1:1
+                alpha(i) = bfgs_s(:,i)'*bfgs_q / (bfgs_y(:,i)'*bfgs_s(:,i));
+                bfgs_q = bfgs_q - alpha(i)*bfgs_y(:,i);
             end
-            y{1, i+1} = yip1;
+            H0 = bfgs_y(:,end)'*bfgs_s(:,end) / (bfgs_y(:,end)'*bfgs_y(:,end)) * eye(l);
+            bfgs_p = H0*bfgs_q;
+            for i = 1:size(bfgs_s,2)
+                beta = bfgs_y(:,i)'*bfgs_p / (bfgs_y(:,i)'*bfgs_s(:,i));
+                bfgs_p = bfgs_p + (alpha(i) - beta)*bfgs_s(:,i);
+            end
         end
 
-        outc = outdata(:, 1:numcases );
-
-        if strcmp( layertypes{numlayers}, 'softmax' )
-            ll = ll + sum(sum(outc.*log(yip1)));
-        elseif strcmp( layertypes{numlayers}, 'logistic' )
-            ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
-        end
-
-        for i = numlayers:-1:1
-            if i < numlayers
-                if strcmp(layertypes{i}, 'logistic')
-                    dEdxi = dEdyip1.*yip1.*(1-yip1);
-                end
+        step = 1;
+        c = 10^(-2);
+        j = 0;
+        oldll = ll;
+        [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
+        while j < 60
+            if ll >= oldll + c*step*grad'*bfgs_p
+                break;
             else
-                dEdxi = outc - yip1; %simplified due to canonical link
+                disp('hi')
+                step = 0.8*step;
+                j = j + 1;
+                oldll = ll;
+                [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
             end
-            dEdyi = Wu{i}'*dEdxi;
+        end
+        
+        bfgs_s = [bfgs_s, step*bfgs_p];
+        paramsp = paramsp + step*bfgs_p;
+        gradold = grad;
+        grad = calcu_grad(paramsp);
+        fprintf('epoch: %d\t\n',epoch);
+        outputString( ['#backtracking: ' num2str(j) ', step size: ' num2str(step)] );
 
-            yi = y{1, i};
+        bfgs_y = [bfgs_y, grad - gradold];
 
-            %standard gradient comp:
-            dEdW{i} = dEdxi*yi';
-            dEdb{i} = sum(dEdxi,2);
-
-            %gradient squared comp:
-            dEdW2{i} = (dEdxi.^2)*(yi.^2)';
-            dEdb2{i} = sum(dEdxi.^2,2);
-
-            dEdyip1 = dEdyi;
-            yip1 = yi;
+        if size(bfgs_s,2) > m
+            bfgs_s = bfgs_s(:,2:end);
+            bfgs_y = bfgs_y(:,2:end);
         end
 
-        % psize x 1
-        grad = pack(dEdW, dEdb);
-        grad2 = pack(dEdW2, dEdb2);
+        %Parameter update:
+        llrecord(epoch,1) = ll;
+        errrecord(epoch,1) = err;
+        outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
-        grad = grad / numcases;
-        grad = grad - weight_decay*(paramsp);
+        %[ll_test, err_test] = computeLL(paramsp + step*bfgs_p, intest, outtest);
+        [ll_test, err_test] = computeLL(paramsp, intest, outtest);
+        
+        llrecord(epoch,2) = ll_test;
+        errrecord(epoch,2) = err_test;
+        outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
+        outputString( '' );
+
         times(epoch) = toc;
     end
 end
 
 outputString( ['Total time: ' num2str(sum(times)) ] );
 end
+
+
+
 
 % function required by 'hf'
 function outputString( s )
