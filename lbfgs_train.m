@@ -4,7 +4,7 @@ llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
 %standard L_2 weight-decay:
-weight_decay = 2e-5;
+weight_decay = 2e-3;
 
 autodamp = 1;
 drop = 2/3;

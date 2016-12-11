@@ -18,4 +18,3 @@ function [ ] = plot_curve( llrecord,  errrecord)
     set(fig, 'Position', [10, 10, 1000, 400]);
 
 end
-
