@@ -1,12 +1,11 @@
-function [llrecord, errrecord] = hf_train(maxIter)
+function [llrecord, errrecord] = hf_train(maxIter, layersizes, layertypes)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
-% standard L_2 weight-decay:
+%standard L_2 weight-decay:
 weight_decay = 2e-5;
 
-% params for damping
 autodamp = 1;
 drop = 2/3;
 boost = 1/drop;
@@ -15,9 +14,7 @@ boost = 1/drop;
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
 
-% network structure
-layersizes = [25 30];
-layertypes = {'logistic', 'logistic', 'softmax'};
+
 % layersizes = [25];
 % layertypes = {'logistic', 'logistic'};
 % load datasets.
@@ -32,11 +29,9 @@ perm = randperm(size(indata,2));
 intmp = indata( :, perm );
 outtmp = outdata(:, perm);
 
-% training data
 indata = intmp(:, 1:3000);
 outdata = outtmp(:, 1:3000);
 
-% test data
 intest = intmp(:, 3001:5000);
 outtest = outtmp(:, 3001:5000);
 
