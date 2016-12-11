@@ -1,4 +1,4 @@
-function [llrecord, errrecord] = hf_train(maxIter, layersizes, layertypes)
+function [llrecord, errrecord, paramsp] = hf_train(maxIter, layersizes, layertypes, paramsinit)
 
 % logging
 llrecord = zeros(maxIter+1,2);
@@ -197,19 +197,23 @@ times = zeros(maxIter,1);
 totalpasses = 0;
 
 % initialization of params: random init
-paramsp = zeros(psize,1);
-[Wtmp,btmp] = unpack(paramsp);
-numconn = 15;
-for layer = 1:numlayers
-    initcoeff = 1;
-    for j = 1:layersizes(layer+1)
-        idx = ceil(layersizes(layer)*rand(1,numconn));
-        Wtmp{layer}(j,idx) = randn(numconn,1)*initcoeff;
+if nargin == 3
+    paramsp = zeros(psize,1);
+    [Wtmp,btmp] = unpack(paramsp);
+    numconn = 15;
+    for layer = 1:numlayers
+        initcoeff = 1;
+        for j = 1:layersizes(layer+1)
+            idx = ceil(layersizes(layer)*rand(1,numconn));
+            Wtmp{layer}(j,idx) = randn(numconn,1)*initcoeff;
+        end
     end
+    paramsp = pack(Wtmp, btmp);
+else
+    paramsp = paramsinit;
 end
-paramsp = pack(Wtmp, btmp);
 
-outputString('================ Start Training... ================')
+outputString('================ Start HF Training... ================')
 % Main part: train and test.
 
 [ll, err] = computeLL(paramsp, indata, outdata);

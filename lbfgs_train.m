@@ -1,4 +1,4 @@
-function [llrecord, errrecord] = lbfgs_train(maxIter, layersizes, layertypes)
+function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, layersizes, layertypes, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -190,22 +190,22 @@ times = zeros(maxIter,1);
 
 totalpasses = 0;
 
-% initialization of params.
-paramsp = zeros(psize,1);
-[Wtmp,btmp] = unpack(paramsp);
-numconn = 15;
-for i = 1:numlayers
-    initcoeff = 1;
-    for j = 1:layersizes(i+1)
-        idx = ceil(layersizes(i)*rand(1,numconn));
-        Wtmp{i}(j,idx) = randn(numconn,1)*initcoeff;
+if nargin == 3
+    % initialization of params.
+    paramsp = zeros(psize,1);
+    [Wtmp,btmp] = unpack(paramsp);
+    numconn = 15;
+    for i = 1:numlayers
+        initcoeff = 1;
+        for j = 1:layersizes(i+1)
+            idx = ceil(layersizes(i)*rand(1,numconn));
+            Wtmp{i}(j,idx) = randn(numconn,1)*initcoeff;
+        end
     end
+    paramsp = pack(Wtmp, btmp);
+else
+    paramsp = paramsinit;
 end
-paramsp = pack(Wtmp, btmp);
-
-
-
-
 
 function grad = calcu_grad(paramsp)
     [Wu, bu] = unpack(paramsp);
@@ -257,7 +257,7 @@ function grad = calcu_grad(paramsp)
 end
 
 
-outputString('================Training================')
+outputString('================ Start LBFGS Training... ================')
 % Main part: train and test.
     
 [ll, err] = computeLL(paramsp, indata, outdata);
