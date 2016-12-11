@@ -1,10 +1,12 @@
-function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, layersizes, layertypes, indata, outdata, intest, outtest, paramsinit)
+function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, params, indata, outdata, intest, outtest, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
-%standard L_2 weight-decay:
-weight_decay = 2e-3;
+%standard L_2 weight-decay and params:
+weight_decay = params.weight_decay;
+layersizes = params.layersizes;
+layertypes = params.layertypes;
 
 autodamp = 1;
 drop = 2/3;
@@ -13,12 +15,6 @@ boost = 1/drop;
 % the amount to decay the previous search direction for the
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
-
-% network structure
-layersizes = [25 30];
-layertypes = {'logistic', 'logistic', 'softmax'};
-% layersizes = [25];
-% layertypes = {'logistic', 'logistic'};
 
 %next try using autodamp = 0 for rho computation.  both for version 6 and
 %versions with rho and cg-backtrack computed on the training set
@@ -149,7 +145,10 @@ function [ll, err] = computeLL(params, in, out)
             tmp = exp(xi);
             yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
         end
+        err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
     end
+    
+    %err = err + double(sum(sum((yi - outc).^2, 1))) / size(in,2);
     
     ll = 0;
     if strcmp( layertypes{numlayers}, 'softmax' )

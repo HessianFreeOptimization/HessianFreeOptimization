@@ -1,10 +1,12 @@
-function [llrecord, errrecord, paramsp] = gd_train(algorithm, maxIter, layersizes, layertypes, indata, outdata, intest, outtest, paramsinit)
+function [llrecord, errrecord, paramsp] = gd_train(algorithm, maxIter, params, indata, outdata, intest, outtest, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
-%standard L_2 weight-decay:
-weight_decay = 2e-5;
+%standard L_2 weight-decay and params:
+weight_decay = params.weight_decay;
+layersizes = params.layersizes;
+layertypes = params.layertypes;
 
 autodamp = 1;
 drop = 2/3;
