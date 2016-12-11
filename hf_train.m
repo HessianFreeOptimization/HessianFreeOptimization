@@ -152,6 +152,7 @@ function GV = computeGV(V)
     GV = GV / numcases;
     GV = GV - weight_decay*(V);
     if autodamp
+%         fprintf('Auto-damping enabled! \n');
         GV = GV - lambda*V;
     end
 end
@@ -186,9 +187,8 @@ function [ll, err] = computeLL(params, in, out)
     ll = ll - 0.5*weight_decay*params'*params;
 end
 
-% the change (decrement) vector to all variables
+% init for the change (decrement) vector to all variables
 ch = zeros(psize, 1);
-
 lambda = initlambda;
 
 % logging
@@ -200,11 +200,11 @@ totalpasses = 0;
 paramsp = zeros(psize,1);
 [Wtmp,btmp] = unpack(paramsp);
 numconn = 15;
-for i = 1:numlayers
+for layer = 1:numlayers
     initcoeff = 1;
-    for j = 1:layersizes(i+1)
-        idx = ceil(layersizes(i)*rand(1,numconn));
-        Wtmp{i}(j,idx) = randn(numconn,1)*initcoeff;
+    for j = 1:layersizes(layer+1)
+        idx = ceil(layersizes(layer)*rand(1,numconn));
+        Wtmp{layer}(j,idx) = randn(numconn,1)*initcoeff;
     end
 end
 paramsp = pack(Wtmp, btmp);
@@ -230,7 +230,7 @@ for epoch = 1:maxIter
     y = cell(1, numlayers+1);
     ll = 0;
 
-    % forward prop:
+    % ===> forward prop: compute activations and grads, as well as loss:
     y{1, 1} = indata(:, 1:numcases );
     yip1 =  y{1, 1} ;
     dEdW = cell(numlayers, 1);
@@ -255,6 +255,7 @@ for epoch = 1:maxIter
     elseif strcmp( layertypes{numlayers}, 'logistic' )
         ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
     end
+    
     for i = numlayers:-1:1
         if i < numlayers
             if strcmp(layertypes{i}, 'logistic')
@@ -296,16 +297,15 @@ for epoch = 1:maxIter
     miniters = 1;
 
     %TODO: preconditioning vector.  Feel free to experiment with this.
-    precon = (grad2 + ones(psize,1)*lambda + weight_decay).^(3/4);
-    %precon = ones(psize,1);
-
+%     precon = (grad2 + ones(psize,1)*lambda + weight_decay).^(3/4);
+    precon = ones(psize,1);
+    
+    % ==> conjugate grad descent and back-tracking
     [chs, iterses] = conjgrad_1( @(V)-computeGV(V), grad, ch, ceil(maxiters), ceil(miniters), precon );
 
     ch = chs{end};
     iters = iterses(end);
-
     totalpasses = totalpasses + iters;
-
     p = ch;
     outputString( ['CG steps used: ' num2str(iters) ', total is: ' num2str(totalpasses) ', ch magnitude : ' num2str(norm(ch))] );
 
@@ -325,7 +325,6 @@ for epoch = 1:maxIter
     if isempty(j)
         j = 1;
     end
-
     p = chs{j};
 
     [ll_chunk, err_chunk] = computeLL(paramsp + chs{j}, indata, outdata);
@@ -375,12 +374,12 @@ for epoch = 1:maxIter
     lambdarecord(epoch,1) = lambda;
     llrecord(epoch+1,1) = ll;
     errrecord(epoch+1,1) = err;
-    outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
+    outputString( ['---- Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
     [ll_test, err_test] = computeLL(paramsp, intest, outtest);
     llrecord(epoch+1,2) = ll_test;
     errrecord(epoch+1,2) = err_test;
-    outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
+    outputString( ['---- Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
     outputString( '' );
 
     times(epoch) = toc;
