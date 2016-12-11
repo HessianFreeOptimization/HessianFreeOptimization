@@ -1,4 +1,4 @@
-function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, params, indata, outdata, intest, outtest, paramsinit)
+function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -7,6 +7,10 @@ errrecord = zeros(maxIter+1,2);
 weight_decay = params.weight_decay;
 layersizes = params.layersizes;
 layertypes = params.layertypes;
+indata = params.indata;
+outdata = params.outdata;
+intest = params.intest;
+outtest = params.outtest;
 
 autodamp = 1;
 drop = 2/3;
@@ -172,7 +176,7 @@ times = zeros(maxIter,1);
 
 totalpasses = 0;
 
-if nargin == 7
+if nargin == 2
     % initialization of params.
     paramsp = zeros(psize,1);
     [Wtmp,btmp] = unpack(paramsp);

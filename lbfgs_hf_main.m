@@ -1,5 +1,4 @@
 clc; clear; close all;
-maxIter = 100;
 %% network structure
 params.layersizes = [200 30];
 params.layertypes = {'logistic', 'logistic', 'softmax'};
