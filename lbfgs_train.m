@@ -149,7 +149,7 @@ function [ll, err] = computeLL(params, in, out)
             tmp = exp(xi);
             yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
         end
-        err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
+%         err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
     end
     
     %err = err + double(sum(sum((yi - outc).^2, 1))) / size(in,2);

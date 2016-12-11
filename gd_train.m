@@ -92,6 +92,7 @@ function [ll, err] = computeLL(params, in, out)
             tmp = exp(xi);
             yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
         end
+%         err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
     end
     
     ll = 0;
