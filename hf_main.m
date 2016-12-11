@@ -1,16 +1,15 @@
 clc; clear; close all;
-maxIter = 50;
-algorithm = 'hf';
-algorithm = 'lbfgs';
-[llrecord, errrecord] = hf_train(algorithm, maxIter);
-
-figure('color', [1 1 1]);
-plot(-llrecord(:,1),'rx-');
+maxIter = 100;
+[llrecord, errrecord] = hf_train(maxIter);
+%
+fig = figure('color', [1 1 1]);
+subplot(1,2,1)
+plot(0:maxIter, -llrecord(:,1),'rx-');
 hold on;
-plot(-llrecord(:,2),'bx-');
-%%
-figure('color', [1 1 1]);
-plot(errrecord(:,1),'rx-');
+plot(0:maxIter, -llrecord(:,2),'bx-');
+subplot(1,2,2)
+%figure('color', [1 1 1]);
+plot(0:maxIter, errrecord(:,1),'rx-');
 hold on;
-plot(errrecord(:,2),'bx-');
-
+plot(0:maxIter, errrecord(:,2),'bx-');
+set(fig, 'Position', [10, 10, 1000, 400]);
