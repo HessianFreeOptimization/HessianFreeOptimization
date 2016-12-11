@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-function [llrecord, errrecord] = hf_train(maxIter)
-% logging
-=======
-function [llrecord, errrecord] = hf_train(maxIter, layersizes, layertypes)
+function [llrecord, errrecord] = lbfgs_train(maxIter, layersizes, layertypes)
 % variables
->>>>>>> a6c3efc3ccaa6eb5600cb7a57e61cd6ae77a9e2a
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
@@ -19,7 +14,9 @@ boost = 1/drop;
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
 
-
+% network structure
+layersizes = [25 30];
+layertypes = {'logistic', 'logistic', 'softmax'};
 % layersizes = [25];
 % layertypes = {'logistic', 'logistic'};
 % load datasets.
@@ -40,9 +37,9 @@ outdata = outtmp(:, 1:3000);
 intest = intmp(:, 3001:5000);
 outtest = outtmp(:, 3001:5000);
 
-% next try using autodamp = 0 for rho computation.  both for version 6 and
-% versions with rho and cg-backtrack computed on the training set
-% mattype = 'gn'; %Curvature matrix: Gauss-Newton.
+%next try using autodamp = 0 for rho computation.  both for version 6 and
+%versions with rho and cg-backtrack computed on the training set
+%mattype = 'gn'; %Curvature matrix: Gauss-Newton.
 
 % IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
 % `maxiters' (harder).  Also, if your particular application is still not working the next 
@@ -67,7 +64,7 @@ layersizes = [size(indata,1) layersizes size(outdata,1)];
 numlayers = size(layersizes,2) - 1;
 
 [indims numcases] = size(indata);
-outputString(['==== Input size:' num2str(indims) 'x' num2str(numcases)])
+outputString(['input size:' num2str(indims) 'x' num2str(numcases)])
 
 y = cell(1, numlayers+1);
 
@@ -98,11 +95,10 @@ function [W,b] = unpack(M)
     end
 end
 
-% compute the vector-product with the Gauss-Newton matrix with the SMD
-% approach;
-% G is the Gaussian-Newton approximation to the Hessian matrix
+%compute the vector-product with the Gauss-Newton matrix
 function GV = computeGV(V)
     [VWu, Vbu] = unpack(V);
+
     %application of R operator
     rdEdy = cell(numlayers+1,1);
     rdEdx = cell(numlayers, 1);
@@ -155,7 +151,7 @@ function GV = computeGV(V)
     end
 end
 
-% forward and get the log-likelihood loss
+
 function [ll, err] = computeLL(params, in, out)
     [W,b] = unpack(params);
     schunk = size(in,2);
@@ -185,17 +181,16 @@ function [ll, err] = computeLL(params, in, out)
     ll = ll - 0.5*weight_decay*params'*params;
 end
 
-% the change (decrement) vector to all variables
 ch = zeros(psize, 1);
 
 lambda = initlambda;
 
-% logging
 lambdarecord = zeros(maxIter,1);
 times = zeros(maxIter,1);
+
 totalpasses = 0;
 
-% initialization of params: random init
+% initialization of params.
 paramsp = zeros(psize,1);
 [Wtmp,btmp] = unpack(paramsp);
 numconn = 15;
@@ -208,34 +203,19 @@ for i = 1:numlayers
 end
 paramsp = pack(Wtmp, btmp);
 
-outputString('================ Start Training ================')
-% Main part: train and test.
 
-[ll, err] = computeLL(paramsp, indata, outdata);
-llrecord(1,1) = ll;
-errrecord(1,1) = err;
-outputString( ['-- Init Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
-[ll_test, err_test] = computeLL(paramsp, intest, outtest);
-llrecord(1,2) = ll_test;
-errrecord(1,2) = err_test;
-outputString( ['-- Init Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
-outputString( '' );
 
-for epoch = 1:maxIter
-    tic
-    outputString(['-- Epoch: ' num2str(epoch)])
+
+function grad = calcu_grad(paramsp)
     [Wu, bu] = unpack(paramsp);
     y = cell(1, numlayers+1);
-    ll = 0;
-
-    % forward prop:
+    %ll = 0;
+    %forward prop:
     y{1, 1} = indata(:, 1:numcases );
     yip1 =  y{1, 1} ;
     dEdW = cell(numlayers, 1);
     dEdb = cell(numlayers, 1);
-    dEdW2 = cell(numlayers, 1);
-    dEdb2 = cell(numlayers, 1);
 
     for i = 1:numlayers
         yi = yip1;
@@ -249,11 +229,7 @@ for epoch = 1:maxIter
         y{1, i+1} = yip1;
     end
     outc = outdata(:, 1:numcases );
-    if strcmp( layertypes{numlayers}, 'softmax' )
-        ll = ll + sum(sum(outc.*log(yip1)));
-    elseif strcmp( layertypes{numlayers}, 'logistic' )
-        ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
-    end
+    
     for i = numlayers:-1:1
         if i < numlayers
             if strcmp(layertypes{i}, 'logistic')
@@ -263,120 +239,101 @@ for epoch = 1:maxIter
             dEdxi = outc - yip1; %simplified due to canonical link
         end
         dEdyi = Wu{i}'*dEdxi;
+
         yi = y{1, i};
+
         %standard gradient comp:
         dEdW{i} = dEdxi*yi';
         dEdb{i} = sum(dEdxi,2);
-        %gradient squared comp:
-        dEdW2{i} = (dEdxi.^2)*(yi.^2)';
-        dEdb2{i} = sum(dEdxi.^2,2);
+
         dEdyip1 = dEdyi;
         yip1 = yi;
     end
+
     % psize x 1
     grad = pack(dEdW, dEdb);
-    grad2 = pack(dEdW2, dEdb2);
     grad = grad / numcases;
     grad = grad - weight_decay*(paramsp);
-    grad2 = grad2 / numcases;
+end
 
-    ll = ll / numcases;
-    ll = ll - 0.5*weight_decay*paramsp'*(paramsp);
-    oldll = ll;
 
-    %slightly decay the previous change vector before using it as an
-    %initialization.  This is something I didn't mention in the paper.
-    ch = decay*ch;
+outputString('================Training================')
+% Main part: train and test.
+    
+[ll, err] = computeLL(paramsp, indata, outdata);
+llrecord(1,1) = ll;
+errrecord(1,1) = err;
+outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
-    %maxiters is the most important variable that you should try
-    %tweaking.  While the ICML paper had maxiters=250 for everything
-    %I've since found out that this wasn't optimal.
-    maxiters = 250;
-    miniters = 1;
+[ll_test, err_test] = computeLL(paramsp, intest, outtest);
+llrecord(1,2) = ll_test;
+errrecord(1,2) = err_test;
+outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
+outputString( '' );
 
-    %TODO: preconditioning vector.  Feel free to experiment with this.
-    precon = (grad2 + ones(psize,1)*lambda + weight_decay).^(3/4);
-    %precon = ones(psize,1);
+tic
+grad = calcu_grad(paramsp);
 
-    [chs, iterses] = conjgrad_1( @(V)-computeGV(V), grad, ch, ceil(maxiters), ceil(miniters), precon );
-
-    ch = chs{end};
-    iters = iterses(end);
-
-    totalpasses = totalpasses + iters;
-
-    p = ch;
-    outputString( ['CG steps used: ' num2str(iters) ', total is: ' num2str(totalpasses) ', ch magnitude : ' num2str(norm(ch))] );
-
-    j = length(chs);
-    %"CG-backtracking":
-    %full training set version:
-    [ll, err] = computeLL(paramsp + p, indata, outdata);
-    for j = (length(chs)-1):-1:1
-        [lowll, lowerr] = computeLL(paramsp + chs{j}, indata, outdata);
-        if ll > lowll
-            j = j+1;
-            break;
+m = 7;
+l = size(paramsp,1);
+bfgs_s = [];
+bfgs_y = [];
+for epoch = 1:maxIter
+    bfgs_q = -grad;
+    bfgs_p = bfgs_q;
+    if epoch ~= 1
+        alpha = zeros(1,m);
+        for i = size(bfgs_s,2):-1:1
+            alpha(i) = bfgs_s(:,i)'*bfgs_q / (bfgs_y(:,i)'*bfgs_s(:,i));
+            bfgs_q = bfgs_q - alpha(i)*bfgs_y(:,i);
         end
-        ll = lowll;
-        err = lowerr;
+        H0 = bfgs_y(:,end)'*bfgs_s(:,end) / (bfgs_y(:,end)'*bfgs_y(:,end)) * eye(l);
+        bfgs_p = H0*bfgs_q;
+        for i = 1:size(bfgs_s,2)
+            beta = bfgs_y(:,i)'*bfgs_p / (bfgs_y(:,i)'*bfgs_s(:,i));
+            bfgs_p = bfgs_p + (alpha(i) - beta)*bfgs_s(:,i);
+        end
     end
-    if isempty(j)
-        j = 1;
-    end
 
-    p = chs{j};
-
-    [ll_chunk, err_chunk] = computeLL(paramsp + chs{j}, indata, outdata);
-    [oldll_chunk, olderr_chunk] = computeLL(paramsp, indata, outdata);
-
-    %disabling damping when computing rho is something I'm not 100% sure
-    autodamp = 0;
-    denom = -0.5*chs{j}'*computeGV(chs{j}) - grad'*chs{j};
-    autodamp = 1;
-    rho = (oldll_chunk - ll_chunk)/denom;
-    if oldll_chunk - ll_chunk > 0
-        rho = -Inf;
-    end
-    outputString( ['Chose iters : ' num2str(iterses(j)) ' ,rho = ' num2str(rho)] );
-
-    % back-tracking line-search
-    step = 1.0;
+    step = 1;
     c = 10^(-2);
     j = 0;
+    oldll = ll;
+    [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
     while j < 60
-        if ll >= oldll + c*step*grad'*p
+        if ll >= oldll - c*step*grad'*bfgs_p
             break;
         else
+            %disp('hi')
             step = 0.8*step;
             j = j + 1;
+            % oldll = ll;
+            [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
         end
-        [ll, err] = computeLL(paramsp + step*p, indata, outdata);
-    end
-    % reject
-    if j == 60
-        j = Inf;
-        step = 0.0;
-        ll = oldll;
     end
 
-    % damping heuristic
-    if rho < 0.25 || isnan(rho)
-        lambda = lambda*boost;
-    elseif rho > 0.75
-        lambda = lambda*drop;
-    end
+    bfgs_s = [bfgs_s, step*bfgs_p];
+    paramsp = paramsp + step*bfgs_p;
+    gradold = grad;
+    grad = calcu_grad(paramsp);
+    fprintf('epoch: %d\t\n',epoch);
+    outputString( ['#backtracking: ' num2str(j) ', step size: ' num2str(step)] );
 
-    outputString( ['#backtracking: ' num2str(j) ', step size: ' num2str(step) ', New lambda: ' num2str(lambda)] );
+    bfgs_y = [bfgs_y, grad - gradold];
+
+    if size(bfgs_s,2) > m
+        bfgs_s = bfgs_s(:,2:end);
+        bfgs_y = bfgs_y(:,2:end);
+    end
 
     %Parameter update:
-    paramsp = paramsp + step*p;
-    lambdarecord(epoch,1) = lambda;
     llrecord(epoch+1,1) = ll;
     errrecord(epoch+1,1) = err;
     outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
+    %[ll_test, err_test] = computeLL(paramsp + step*bfgs_p, intest, outtest);
     [ll_test, err_test] = computeLL(paramsp, intest, outtest);
+
     llrecord(epoch+1,2) = ll_test;
     errrecord(epoch+1,2) = err_test;
     outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
@@ -385,9 +342,12 @@ for epoch = 1:maxIter
     times(epoch) = toc;
 end
 
+
 outputString( ['Total time: ' num2str(sum(times)) ] );
 end
 
+
+% function required by 'hf'
 function outputString( s )
     fprintf( '%s\n', s );
 end

@@ -1,10 +1,10 @@
 clc; clear; close all;
-maxIter = 30;
+maxIter = 100;
 % network structure
 layersizes = [25 30];
 layertypes = {'logistic', 'logistic', 'softmax'};
 
-[llrecord, errrecord] = hf_train(maxIter, layersizes, layertypes);
+[llrecord, errrecord] = lbfgs_train(maxIter, layersizes, layertypes);
 
 fig = figure('color', [1 1 1]);
 subplot(1,2,1);
