@@ -23,7 +23,7 @@ for i = 1:10
 end
 
 %% training
-[llrecord, errrecord, params] = gd_train('adam', 150, layersizes, layertypes, indata, outdata, intest, outtest);
+[llrecord, errrecord, params] = gd_train('adam', 1000, layersizes, layertypes, indata, outdata, intest, outtest);
 [llrecord2, errrecord2, params] = lbfgs_train(60, layersizes, layertypes, indata, outdata, intest, outtest, params);
 % [llrecord2, errrecord2, ~] = hf_train(60, layersizes, layertypes, params);
 llrecord = [llrecord; llrecord2];
