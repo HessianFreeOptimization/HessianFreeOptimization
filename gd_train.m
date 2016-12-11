@@ -14,11 +14,6 @@ boost = 1/drop;
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
 
-% network structure
-layersizes = [25 30];
-layertypes = {'logistic', 'logistic', 'softmax'};
-% layersizes = [25];
-% layertypes = {'logistic', 'logistic'};
 % load datasets.
 tmp = load('ex4data1.mat');
 
@@ -146,10 +141,6 @@ for i = 1:numlayers
 end
 paramsp = pack(Wtmp, btmp);
 
-
-
-
-
 function grad = calcu_grad(paramsp)
     [Wu, bu] = unpack(paramsp);
     y = cell(1, numlayers+1);
@@ -202,6 +193,24 @@ end
 
 outputString('================Training================')
 % Main part: train and test.
+
+switch algorithm
+    case 'gradient descent','momentum'
+        strategy = 1;
+    case 'momentum'
+        strategy = 2;
+    case 'nesterov accelerated gradient'
+        strategy = 3;
+    case 'adagrad'
+        strategy = 4;
+    case 'RMSprop'
+        strategy = 5;
+    case 'adadelta'
+        strategy = 6;
+    case 'adam'
+        strategy = 7;
+end
+
 eta = 0.01;
 gamma = 0.9;
 beta1 = 0.9;
@@ -218,8 +227,6 @@ Eg2 = zeros(m,1);
 Et2 = zeros(m,1);
 mt = zeros(m,1);
 vt = zeros(m,1);
-strategy = 1;
-cost = [];
 
 
 [ll, err] = computeLL(paramsp, indata, outdata);
@@ -233,85 +240,29 @@ errrecord(1,2) = err_test;
 outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
 outputString( '' );
 
-for epoch = 1:maxIter
-    
-    [fval, grad] = costFunction(paramsp);
-    
-    
-    
-    
-    cost = [cost, fval];
-    fprintf('%d\t%.5f\n',epoch-1,fval)
-    [xn,v,mt,vt,diagG,Eg2,Et2] = gradupdate(strategy,grad,paramsp,xoo,v,diagG,Eg2,Et2,...
-        mt,vt,epoch,eta,gamma,beta1,beta2,epsilon);
-
-    xoo = paramsp;
-    paramsp = xn;
-end
-
-
-
 tic
 grad = calcu_grad(paramsp);
 
-m = 7;
-l = size(paramsp,1);
-bfgs_s = [];
-bfgs_y = [];
-for paramsp = 1:maxIter
-    bfgs_q = -grad;
-    bfgs_p = bfgs_q;
-    if epoch ~= 1
-        alpha = zeros(1,m);
-        for i = size(bfgs_s,2):-1:1
-            alpha(i) = bfgs_s(:,i)'*bfgs_q / (bfgs_y(:,i)'*bfgs_s(:,i));
-            bfgs_q = bfgs_q - alpha(i)*bfgs_y(:,i);
-        end
-        H0 = bfgs_y(:,end)'*bfgs_s(:,end) / (bfgs_y(:,end)'*bfgs_y(:,end)) * eye(l);
-        bfgs_p = H0*bfgs_q;
-        for i = 1:size(bfgs_s,2)
-            beta = bfgs_y(:,i)'*bfgs_p / (bfgs_y(:,i)'*bfgs_s(:,i));
-            bfgs_p = bfgs_p + (alpha(i) - beta)*bfgs_s(:,i);
-        end
-    end
 
-    step = 1;
-    c = 10^(-2);
-    j = 0;
-    oldll = ll;
-    [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
-    while j < 60
-        if ll >= oldll - c*step*grad'*bfgs_p
-            break;
-        else
-            %disp('hi')
-            step = 0.8*step;
-            j = j + 1;
-            % oldll = ll;
-            [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
-        end
-    end
+for epoch = 1:maxIter
 
-    bfgs_s = [bfgs_s, step*bfgs_p];
-    paramsp = paramsp + step*bfgs_p;
-    gradold = grad;
-    grad = calcu_grad(paramsp);
+    %-grad since we maximize the log likelihood.
+    [xn,v,mt,vt,diagG,Eg2,Et2] = gradupdate(strategy,-grad,paramsp,xoo,v,diagG,Eg2,Et2,...
+        mt,vt,epoch,eta,gamma,beta1,beta2,epsilon);
+
     fprintf('epoch: %d\t\n',epoch);
-    outputString( ['#backtracking: ' num2str(j) ', step size: ' num2str(step)] );
-
-    bfgs_y = [bfgs_y, grad - gradold];
-
-    if size(bfgs_s,2) > m
-        bfgs_s = bfgs_s(:,2:end);
-        bfgs_y = bfgs_y(:,2:end);
-    end
-
+    
+    xoo = paramsp;
+    paramsp = xn;
+    
+    grad = calcu_grad(paramsp);
+    [ll, err] = computeLL(paramsp, indata, outdata);
+    
     %Parameter update:
     llrecord(epoch+1,1) = ll;
     errrecord(epoch+1,1) = err;
     outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
-    %[ll_test, err_test] = computeLL(paramsp + step*bfgs_p, intest, outtest);
     [ll_test, err_test] = computeLL(paramsp, intest, outtest);
 
     llrecord(epoch+1,2) = ll_test;
@@ -320,6 +271,7 @@ for paramsp = 1:maxIter
     outputString( '' );
 
     times(epoch) = toc;
+    
 end
 
 outputString( ['Total time: ' num2str(sum(times)) ] );
