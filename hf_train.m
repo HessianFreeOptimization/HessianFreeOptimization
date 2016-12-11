@@ -1,5 +1,5 @@
 function [llrecord, errrecord] = hf_train(maxIter)
-% variables
+% logging
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
@@ -40,9 +40,9 @@ outdata = outtmp(:, 1:3000);
 intest = intmp(:, 3001:5000);
 outtest = outtmp(:, 3001:5000);
 
-%next try using autodamp = 0 for rho computation.  both for version 6 and
-%versions with rho and cg-backtrack computed on the training set
-%mattype = 'gn'; %Curvature matrix: Gauss-Newton.
+% next try using autodamp = 0 for rho computation.  both for version 6 and
+% versions with rho and cg-backtrack computed on the training set
+% mattype = 'gn'; %Curvature matrix: Gauss-Newton.
 
 % IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
 % `maxiters' (harder).  Also, if your particular application is still not working the next 
@@ -67,7 +67,7 @@ layersizes = [size(indata,1) layersizes size(outdata,1)];
 numlayers = size(layersizes,2) - 1;
 
 [indims numcases] = size(indata);
-outputString(['input size:' num2str(indims) 'x' num2str(numcases)])
+outputString(['==== Input size:' num2str(indims) 'x' num2str(numcases)])
 
 y = cell(1, numlayers+1);
 
@@ -98,10 +98,11 @@ function [W,b] = unpack(M)
     end
 end
 
-%compute the vector-product with the Gauss-Newton matrix
+% compute the vector-product with the Gauss-Newton matrix with the SMD
+% approach;
+% G is the Gaussian-Newton approximation to the Hessian matrix
 function GV = computeGV(V)
     [VWu, Vbu] = unpack(V);
-
     %application of R operator
     rdEdy = cell(numlayers+1,1);
     rdEdx = cell(numlayers, 1);
@@ -154,7 +155,7 @@ function GV = computeGV(V)
     end
 end
 
-
+% forward and get the log-likelihood loss
 function [ll, err] = computeLL(params, in, out)
     [W,b] = unpack(params);
     schunk = size(in,2);
@@ -184,16 +185,17 @@ function [ll, err] = computeLL(params, in, out)
     ll = ll - 0.5*weight_decay*params'*params;
 end
 
+% the change (decrement) vector to all variables
 ch = zeros(psize, 1);
 
 lambda = initlambda;
 
+% logging
 lambdarecord = zeros(maxIter,1);
 times = zeros(maxIter,1);
-
 totalpasses = 0;
 
-% initialization of params.
+% initialization of params: random init
 paramsp = zeros(psize,1);
 [Wtmp,btmp] = unpack(paramsp);
 numconn = 15;
@@ -206,22 +208,23 @@ for i = 1:numlayers
 end
 paramsp = pack(Wtmp, btmp);
 
-outputString('================Training================')
+outputString('================ Start Training ================')
 % Main part: train and test.
 
 [ll, err] = computeLL(paramsp, indata, outdata);
 llrecord(1,1) = ll;
 errrecord(1,1) = err;
-outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
+outputString( ['-- Init Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
 [ll_test, err_test] = computeLL(paramsp, intest, outtest);
 llrecord(1,2) = ll_test;
 errrecord(1,2) = err_test;
-outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
+outputString( ['-- Init Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
 outputString( '' );
+
 for epoch = 1:maxIter
     tic
-    outputString(['epoch: ' num2str(epoch)])
+    outputString(['-- Epoch: ' num2str(epoch)])
     [Wu, bu] = unpack(paramsp);
     y = cell(1, numlayers+1);
     ll = 0;
