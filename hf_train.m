@@ -1,9 +1,10 @@
-function [llrecord, errrecord] = hf_train(maxIter)
+function [llrecord, errrecord] = hf_train(maxIter, layersizes, layertypes)
+
 % logging
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
-% standard L_2 weight-decay:
+%standard L_2 weight-decay:
 weight_decay = 2e-5;
 
 % params for damping
