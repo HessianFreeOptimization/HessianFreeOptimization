@@ -3,7 +3,7 @@ maxIter = 100;
 %% network structure
 params.layersizes = [200 30];
 params.layertypes = {'logistic', 'logistic', 'softmax'};
-params.weight_decay = 2e-3;
+params.weight_decay = 2e-4;
 
 %% load datasets.
 indata = loadMNISTImages('raw_data/train-images.idx3-ubyte');
