@@ -1,4 +1,4 @@
-function [llrecord, errrecord, paramsp] = gd_train(algorithm, maxIter, layersizes, layertypes, paramsinit)
+function [llrecord, errrecord, paramsp] = gd_train(algorithm, maxIter, layersizes, layertypes, indata, outdata, intest, outtest, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -13,24 +13,6 @@ boost = 1/drop;
 % the amount to decay the previous search direction for the
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
-
-% load datasets.
-tmp = load('ex4data1.mat');
-
-indata = tmp.X';
-outdata = zeros(10,length(tmp.y));
-for i = 1:length(tmp.y)
-    outdata(tmp.y(i),i) = 1;
-end
-perm = randperm(size(indata,2));
-intmp = indata( :, perm );
-outtmp = outdata(:, perm);
-
-indata = intmp(:, 1:3000);
-outdata = outtmp(:, 1:3000);
-
-intest = intmp(:, 3001:5000);
-outtest = outtmp(:, 3001:5000);
 
 %next try using autodamp = 0 for rho computation.  both for version 6 and
 %versions with rho and cg-backtrack computed on the training set
@@ -129,7 +111,7 @@ times = zeros(maxIter,1);
 totalpasses = 0;
 
 % initialization of params.
-if nargin == 4
+if nargin == 8
     paramsp = zeros(psize,1);
     [Wtmp,btmp] = unpack(paramsp);
     numconn = 15;

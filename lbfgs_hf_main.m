@@ -24,7 +24,7 @@ end
 
 %% training
 [llrecord, errrecord, params] = gd_train('adam', 150, layersizes, layertypes, indata, outdata, intest, outtest);
-[llrecord2, errrecord2, ~] = lbfgs_train(60, layersizes, layertypes, params, indata, outdata, intest, outtest);
+[llrecord2, errrecord2, ~] = lbfgs_train(60, layersizes, layertypes, indata, outdata, intest, outtest, params);
 % [llrecord2, errrecord2, ~] = hf_train(60, layersizes, layertypes, params);
 llrecord = [llrecord; llrecord2];
 errrecord = [errrecord; errrecord2];

@@ -1,4 +1,4 @@
-function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, layersizes, layertypes, paramsinit)
+function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, layersizes, layertypes, indata, outdata, intest, outtest, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -19,23 +19,6 @@ layersizes = [25 30];
 layertypes = {'logistic', 'logistic', 'softmax'};
 % layersizes = [25];
 % layertypes = {'logistic', 'logistic'};
-% load datasets.
-tmp = load('ex4data1.mat');
-
-indata = tmp.X';
-outdata = zeros(10,length(tmp.y));
-for i = 1:length(tmp.y)
-    outdata(tmp.y(i),i) = 1;
-end
-perm = randperm(size(indata,2));
-intmp = indata( :, perm );
-outtmp = outdata(:, perm);
-
-indata = intmp(:, 1:3000);
-outdata = outtmp(:, 1:3000);
-
-intest = intmp(:, 3001:5000);
-outtest = outtmp(:, 3001:5000);
 
 %next try using autodamp = 0 for rho computation.  both for version 6 and
 %versions with rho and cg-backtrack computed on the training set
@@ -190,7 +173,7 @@ times = zeros(maxIter,1);
 
 totalpasses = 0;
 
-if nargin == 3
+if nargin == 7
     % initialization of params.
     paramsp = zeros(psize,1);
     [Wtmp,btmp] = unpack(paramsp);
