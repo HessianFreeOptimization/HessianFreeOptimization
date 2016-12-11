@@ -24,7 +24,7 @@ for i = 1:10
 	outtest(i,:) = (yt == i);
 end
 
-[llrecord, errrecord] = gd_train(algorithm, maxIter, layersizes, layertypes, indata, outdata, intest, outtest);
+[llrecord, errrecord, params] = gd_train(algorithm, maxIter, layersizes, layertypes, indata, outdata, intest, outtest);
 
 %%
 plot_curve(llrecord,  errrecord);
