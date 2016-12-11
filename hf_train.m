@@ -3,9 +3,10 @@ function [llrecord, errrecord] = hf_train(maxIter)
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
-%standard L_2 weight-decay:
+% standard L_2 weight-decay:
 weight_decay = 2e-5;
 
+% params for damping
 autodamp = 1;
 drop = 2/3;
 boost = 1/drop;
@@ -31,9 +32,11 @@ perm = randperm(size(indata,2));
 intmp = indata( :, perm );
 outtmp = outdata(:, perm);
 
+% training data
 indata = intmp(:, 1:3000);
 outdata = outtmp(:, 1:3000);
 
+% test data
 intest = intmp(:, 3001:5000);
 outtest = outtmp(:, 3001:5000);
 
