@@ -191,7 +191,7 @@ function grad = calcu_grad(paramsp)
 end
 
 
-outputString( sprintf('================ %s Training================', algorithm))
+outputString( sprintf('================ %s Training for %d iters ================', algorithm, maxIter))
 % Main part: train and test.
 
 switch algorithm

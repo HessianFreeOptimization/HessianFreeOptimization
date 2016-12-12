@@ -252,7 +252,7 @@ function grad = calcu_grad(paramsp)
 end
 
 
-outputString('================ Start LBFGS Training... ================')
+outputString(sprintf('================ Start LBFGS Training for %d iters... ================', maxIter))
 % Main part: train and test.
     
 [ll, err] = computeLL(paramsp, indata, outdata);

@@ -200,7 +200,7 @@ else
     paramsp = paramsinit;
 end
 
-outputString('================ Start HF Training... ================')
+outputString(sprintf('================ Start HF Training for %d iters... ================', maxIter))
 % Main part: train and test.
 
 [ll, err] = computeLL(paramsp, indata, outdata);
