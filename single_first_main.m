@@ -41,6 +41,7 @@ for al_iter = 7 : length(algorithms)
     algorithm = algorithms{al_iter};
     records = cell(trials, 1);
     for trial = 1:trials
+        fprintf('===== trial %d of %d ===== \n', trial, trials);
         eval_f = 0;
         eval_g = 0;
         [llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters, params);
