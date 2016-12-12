@@ -6,6 +6,7 @@ function [ ] = plot_curve( llrecord,  errrecord)
     ylim([0 max(-llrecord(:,1))]);
     hold on;
     plot(0:iters, -llrecord(:,2),'b-');
+    grid on;
     ylim([0 max(-llrecord(:,2))]);
     title('log-likelihood');
 
@@ -13,6 +14,7 @@ function [ ] = plot_curve( llrecord,  errrecord)
     plot(0:iters, errrecord(:,1),'r-');
     hold on;
     plot(0:iters, errrecord(:,2),'b-');
+    grid on;
     title('error');
     ylim([0 1]);
     set(fig, 'Position', [10, 10, 1000, 400]);

@@ -273,7 +273,7 @@ for epoch = 1:maxIter
             alpha(i) = bfgs_s(:,i)'*bfgs_q / (bfgs_y(:,i)'*bfgs_s(:,i));
             bfgs_q = bfgs_q - alpha(i)*bfgs_y(:,i);
         end
-        H0 = bfgs_y(:,end)'*bfgs_s(:,end) / (bfgs_y(:,end)'*bfgs_y(:,end)) * eye(l);
+        H0 = bfgs_y(:,end)'*bfgs_s(:,end) / (bfgs_y(:,end)'*bfgs_y(:,end));
         bfgs_p = H0*bfgs_q;
         for i = 1:size(bfgs_s,2)
             beta = bfgs_y(:,i)'*bfgs_p / (bfgs_y(:,i)'*bfgs_s(:,i));
