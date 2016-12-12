@@ -1,6 +1,6 @@
 clc; clear; close all;
 %% network structure
-params.layersizes = [200 30];
+params.layersizes = [100 30];
 params.layertypes = {'logistic', 'logistic', 'softmax'};
 params.weight_decay = 2e-4;
 
