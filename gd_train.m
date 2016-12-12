@@ -190,12 +190,10 @@ function grad = calcu_grad(paramsp)
     grad = grad - weight_decay*(paramsp);
 end
 
-
-outputString( sprintf('================ %s Training for %d iters ================', algorithm, maxIter))
 % Main part: train and test.
 
 switch algorithm
-    case 'gradient descent','momentum'
+    case 'gradient descent'
         strategy = 1;
     case 'momentum'
         strategy = 2;
@@ -210,6 +208,7 @@ switch algorithm
     case 'adam'
         strategy = 7;
 end
+outputString( sprintf('================ %s Training for %d iters with strategy %d ================', algorithm, maxIter))
 
 eta = 0.01;
 gamma = 0.9;
