@@ -33,24 +33,29 @@ params.outtest = outtest;
 %% training
 iters = 4;
 trials = 20;
-algorithm = 'adam';
-records = cell(trials, 1);
-for trial = 1:trials
-    global eval_f;
-    eval_f = 0;
-    global eval_g;
-    eval_g = 0;
-    [llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters, params);
-    records{trial}.llrecord = llrecord;
-    records{trial}.errrecord = errrecord;
-    records{trial}.weights = weights;
-    records{trial}.eval_fs = eval_fs;
-    records{trial}.eval_gs = eval_gs;
+algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
+    'adagrad','RMSprop','adadelta','adam'};
+for al_iter = 1 : length(algorithms)
+    algorithm = algorithms{al_iter};
+    records = cell(trials, 1);
+    for trial = 1:trials
+        global eval_f;
+        eval_f = 0;
+        global eval_g;
+        eval_g = 0;
+        [llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters, params);
+        records{trial}.llrecord = llrecord;
+        records{trial}.errrecord = errrecord;
+        records{trial}.weights = weights;
+        records{trial}.eval_fs = eval_fs;
+        records{trial}.eval_gs = eval_gs;
+    end
+    save(sprintf('./saved/single_%s_for_%d_iter_test.mat', algorithm, iters), 'records');
+    % [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
+    fig1 = figure(1);
+    plot_curve(records, fig1);
 end
-save(sprintf('./saved/single_%s_for_%d_iter.mat', algorithm, iters), 'records');
-% [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
-
 %% plotting
-close all
-fig1 = figure(1);
-plot_curve(records, fig1);
+% close all
+% fig1 = figure(1);
+% plot_curve(records, fig1);
