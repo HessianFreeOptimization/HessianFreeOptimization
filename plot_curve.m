@@ -14,7 +14,7 @@ function [ ] = plot_curve(records, fig)
         end
         trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1),'r-', 'LineWidth', 1.5);
 %         alpha(trial_curve, 0.1);
-        trial_curve.Color(4) = 0.2;
+        trial_curve.Color(4) = 0.35;
         llrecord_meanllrecord_mean = llrecord_mean + (-records{trial}.llrecord(:,1));
         hold on;
 %         semilogy(x_inds, -records{trial}.llrecord(:,2),'b-');
@@ -39,12 +39,13 @@ function [ ] = plot_curve(records, fig)
             x_inds = eval_s;
         end
         records{trial}.errrecord
-        semilogy(x_inds, records{trial}.errrecord(:,1),'r-');
+        semilogy(x_inds, records{trial}.errrecord(:,1),'r-', 'LineWidth', 1.5);
         errrecord_mean = errrecord_mean + records{trial}.errrecord(:,1);
         hold on;
 %         semilogy(x_inds, records{trial}.errrecord(:,2),'b-');
 %         hold on;
     end
+    errrecord_mean = errrecord_mean 
     grid on;
     title('train/test error');
     ylim([0 1]);
