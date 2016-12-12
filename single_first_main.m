@@ -51,7 +51,7 @@ for al_iter = 7 : length(algorithms)
         records{trial}.eval_fs = eval_fs;
         records{trial}.eval_gs = eval_gs;
     end
-    save(sprintf('./saved/single_%s-for-%d_iter-%d_trials.mat', algorithm, iters, trials), 'records');
+    save(sprintf('./saved/single_%s-for-%d_iters-%d_trials.mat', algorithm, iters, trials), 'records');
     % [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
     % fig1 = figure(1);
     % plot_curve(records, fig1);

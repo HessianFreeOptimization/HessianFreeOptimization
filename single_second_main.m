@@ -19,20 +19,20 @@ outtest = zeros(10,size(intest,2));
 for i = 1:10
 	outtest(i,:) = (yt == i);
 end
-% params.indata = indata(:, 1000);
-% params.outdata = outdata(:, 1000);
-% params.intest = intest(:, 1000);
-% params.outtest = outtest(:, 1000);
-params.indata = indata;
-params.outdata = outdata;
-params.intest = intest;
-params.outtest = outtest;
+params.indata = indata(:, 1:10000);
+params.outdata = outdata(:, 1:10000);
+params.intest = intest(:, 1:2000);
+params.outtest = outtest(:, 1:2000);
+% params.indata = indata;
+% params.outdata = outdata;
+% params.intest = intest;
+% params.outtest = outtest;
 
 % fig1 = figure('color', [1 1 1]);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
-iters = 1500;
-trials = 12;
+iters = 3000;
+trials = 15;
 
 global eval_f;
 global eval_g;
@@ -66,10 +66,10 @@ for trial = 1:trials
     records{trial}.eval_fs = eval_fs;
     records{trial}.eval_gs = eval_gs;
 end
-save(sprintf('./saved/single_lbfgs_for_%d_iter_test.mat', iters), 'records');
+save(sprintf('./saved/single_lbfgs-for-%d_iters-%d_trials.mat', iters, trials), 'records');
 % [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
-fig1 = figure(1);
-plot_curve(records, fig1);
+% fig1 = figure(1);
+% plot_curve(records, fig1);
 %% plotting
 % close all
 % fig1 = figure(1);
