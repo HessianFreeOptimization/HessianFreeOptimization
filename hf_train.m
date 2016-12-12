@@ -184,7 +184,7 @@ times = zeros(maxIter,1);
 totalpasses = 0;
 
 % initialization of params: random init
-if nargin == 7
+if nargin == 2
     paramsp = zeros(psize,1);
     [Wtmp,btmp] = unpack(paramsp);
     numconn = 15;
