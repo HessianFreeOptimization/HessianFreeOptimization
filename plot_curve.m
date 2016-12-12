@@ -8,18 +8,15 @@ function [ ] = plot_curve(records, fig)
     
     for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
-        if nargin == 2
-            x_inds = 0:iters;
-        else
-            x_inds = eval_s;
-        end
+        x_inds = 0:iters;
+%         x_inds = records{trial}.eval_gs;
         trial_curve = plot(x_inds, -records{trial}.llrecord(:,1),'r-', 'LineWidth', 1.5);
 %         alpha(trial_curve, 0.1);
         trial_curve.Color(4) = 0.3;
         llrecord_mean = llrecord_mean + (-records{trial}.llrecord(:,1));
         hold on;
-%         plot(x_inds, -records{trial}.llrecord(:,2),'b-');
-%         hold on;
+        plot(x_inds, -records{trial}.llrecord(:,2),'b-');
+        hold on;
         if max(max(-records{trial}.llrecord)) > max_llrecord
             max_llrecord = max(max(-records{trial}.llrecord));
         end
@@ -44,8 +41,8 @@ function [ ] = plot_curve(records, fig)
         trial_curve.Color(4) = 0.3;
         errrecord_mean = errrecord_mean + records{trial}.errrecord(:,1);
         hold on;
-%         plot(x_inds, records{trial}.errrecord(:,2),'b-');
-%         hold on;
+        plot(x_inds, records{trial}.errrecord(:,2),'b-');
+        hold on;
     end
     errrecord_mean = errrecord_mean / trials;
     plot(x_inds, errrecord_mean,'r-', 'LineWidth', 2.5);

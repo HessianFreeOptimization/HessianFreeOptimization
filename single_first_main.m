@@ -19,10 +19,10 @@ outtest = zeros(10,size(intest,2));
 for i = 1:10
 	outtest(i,:) = (yt == i);
 end
-params.indata = indata(:, 1:10000);
-params.outdata = outdata(:, 1:10000);
-params.intest = intest(:, 1:2000);
-params.outtest = outtest(:, 1:2000);
+params.indata = indata(:, 1:5000);
+params.outdata = outdata(:, 1:5000);
+params.intest = intest(:, 1:1000);
+params.outtest = outtest(:, 1:1000);
 % params.indata = indata;
 % params.outdata = outdata;
 % params.intest = intest;
@@ -32,12 +32,14 @@ params.outtest = outtest(:, 1:2000);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
 iters = 3000;
-trials = 15;
+trials = 1;
 algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
     'adagrad','RMSprop','adadelta','adam'};
 global eval_f;
 global eval_g;
-for al_iter = 7 : length(algorithms)
+% for al_iter = 1 : length(algorithms)
+for al_iter = 1 : 4
+% for al_iter = 5 : length(algorithms)
     algorithm = algorithms{al_iter};
     records = cell(trials, 1);
     for trial = 1:trials
