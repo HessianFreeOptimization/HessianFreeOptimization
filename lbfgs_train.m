@@ -1,7 +1,11 @@
-function [llrecord, errrecord, paramsp] = lbfgs_train(maxIter, params, paramsinit)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = lbfgs_train(maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
+eval_fs = zeros(maxIter+1,1);
+eval_gs = zeros(maxIter+1,1);
+global eval_f;
+global eval_g;
 
 %standard L_2 weight-decay and params:
 weight_decay = params.weight_decay;
@@ -103,6 +107,7 @@ function GV = computeGV(V)
             Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
         end
     end
+    eval_f = eval_f + 1;
 
     %Backwards pass.  This is where things start to differ from computeHV
     %note that the lower-case r notation doesn't really make sense.
@@ -125,6 +130,7 @@ function GV = computeGV(V)
 
         yip1 = yi;
     end
+    eval_g = eval_g + 1;
     % psize x 1
     GV = pack(GVW, GVb);
     GV = GV / numcases;
@@ -151,6 +157,7 @@ function [ll, err] = computeLL(params, in, out)
         end
 %         err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
     end
+    eval_f = eval_f + 1;
     
     %err = err + double(sum(sum((yi - outc).^2, 1))) / size(in,2);
     
@@ -214,6 +221,7 @@ function grad = calcu_grad(paramsp)
         end
         y{1, i+1} = yip1;
     end
+    eval_f = eval_f + 1;
     outc = outdata(:, 1:numcases );
     
     for i = numlayers:-1:1
@@ -235,6 +243,7 @@ function grad = calcu_grad(paramsp)
         dEdyip1 = dEdyi;
         yip1 = yi;
     end
+    eval_g = eval_g + 1;
 
     % psize x 1
     grad = pack(dEdW, dEdb);
@@ -249,6 +258,8 @@ outputString('================ Start LBFGS Training... ================')
 [ll, err] = computeLL(paramsp, indata, outdata);
 llrecord(1,1) = ll;
 errrecord(1,1) = err;
+eval_gs(1,1) = eval_g;
+eval_fs(1,1) = eval_f;
 outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
 [ll_test, err_test] = computeLL(paramsp, intest, outtest);
@@ -315,6 +326,8 @@ for epoch = 1:maxIter
     %Parameter update:
     llrecord(epoch+1,1) = ll;
     errrecord(epoch+1,1) = err;
+    eval_gs(epoch+1,1) = eval_g;
+    eval_fs(epoch+1,1) = eval_f;
     outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
     %[ll_test, err_test] = computeLL(paramsp + step*bfgs_p, intest, outtest);

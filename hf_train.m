@@ -1,7 +1,11 @@
-function [llrecord, errrecord, paramsp] = hf_train(maxIter, params, paramsinit)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = hf_train(maxIter, params, paramsinit)
 % logging
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
+eval_fs = zeros(maxIter+1,1);
+eval_gs = zeros(maxIter+1,1);
+global eval_f;
+global eval_g;
 
 %standard L_2 weight-decay and params:
 weight_decay = params.weight_decay;
@@ -105,6 +109,7 @@ function GV = computeGV(V)
             Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
         end
     end
+    eval_f = eval_f + 1;
 
     %Backwards pass.  This is where things start to differ from computeHV
     %note that the lower-case r notation doesn't really make sense.
@@ -124,9 +129,10 @@ function GV = computeGV(V)
         yi = y{1, i};
         GVW{i} = rdEdx{i}*yi';
         GVb{i} = sum(rdEdx{i},2);
-
         yip1 = yi;
     end
+    eval_g = eval_g + 1;
+    
     % psize x 1
     GV = pack(GVW, GVb);
     GV = GV / numcases;
@@ -153,6 +159,7 @@ function [ll, err] = computeLL(params, in, out)
             yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
         end
     end
+    eval_f = eval_f + 1;
     
     ll = 0;
     if strcmp( layertypes{numlayers}, 'softmax' )
@@ -199,6 +206,8 @@ outputString('================ Start HF Training... ================')
 [ll, err] = computeLL(paramsp, indata, outdata);
 llrecord(1,1) = ll;
 errrecord(1,1) = err;
+eval_gs(1,1) = eval_g;
+eval_fs(1,1) = eval_f;
 outputString( ['-- Init Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
 [ll_test, err_test] = computeLL(paramsp, intest, outtest);
@@ -239,6 +248,7 @@ for epoch = 1:maxIter
     elseif strcmp( layertypes{numlayers}, 'logistic' )
         ll = ll + sum(sum(xi.*(outc - (xi >= 0)) - log(1+exp(xi - 2*xi.*(xi>=0)))));                
     end
+    eval_f = eval_f + 1;
     
     for i = numlayers:-1:1
         if i < numlayers
@@ -259,6 +269,7 @@ for epoch = 1:maxIter
         dEdyip1 = dEdyi;
         yip1 = yi;
     end
+    eval_g = eval_g + 1;
     % psize x 1
     grad = pack(dEdW, dEdb);
     grad2 = pack(dEdW2, dEdb2);
@@ -358,6 +369,8 @@ for epoch = 1:maxIter
     lambdarecord(epoch,1) = lambda;
     llrecord(epoch+1,1) = ll;
     errrecord(epoch+1,1) = err;
+    eval_gs(epoch+1,1) = eval_g;
+    eval_fs(epoch+1,1) = eval_f;
     outputString( ['---- Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
     [ll_test, err_test] = computeLL(paramsp, intest, outtest);

@@ -1,7 +1,11 @@
-function [llrecord, errrecord, paramsp] = gd_train(algorithm, maxIter, params, paramsinit)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = gd_train(algorithm, maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
+eval_fs = zeros(maxIter+1,1);
+eval_gs = zeros(maxIter+1,1);
+global eval_f;
+global eval_g;
 
 %standard L_2 weight-decay and params:
 weight_decay = params.weight_decay;
@@ -94,6 +98,7 @@ function [ll, err] = computeLL(params, in, out)
         end
 %         err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
     end
+    eval_f = eval_f + 1;
     
     ll = 0;
     if strcmp( layertypes{numlayers}, 'softmax' )
@@ -156,6 +161,7 @@ function grad = calcu_grad(paramsp)
         y{1, i+1} = yip1;
     end
     outc = outdata(:, 1:numcases );
+    eval_f = eval_f + 1;
     
     for i = numlayers:-1:1
         if i < numlayers
@@ -176,6 +182,7 @@ function grad = calcu_grad(paramsp)
         dEdyip1 = dEdyi;
         yip1 = yi;
     end
+    eval_g = eval_g + 1;
 
     % psize x 1
     grad = pack(dEdW, dEdb);
@@ -225,6 +232,8 @@ vt = zeros(m,1);
 [ll, err] = computeLL(paramsp, indata, outdata);
 llrecord(1,1) = ll;
 errrecord(1,1) = err;
+eval_gs(1) = eval_g;
+eval_fs(1) = eval_f;
 outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
 [ll_test, err_test] = computeLL(paramsp, intest, outtest);
@@ -254,6 +263,8 @@ for epoch = 1:maxIter
     %Parameter update:
     llrecord(epoch+1,1) = ll;
     errrecord(epoch+1,1) = err;
+    eval_gs(epoch+1,1) = eval_g;
+    eval_fs(epoch+1,1) = eval_f;
     outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
     [ll_test, err_test] = computeLL(paramsp, intest, outtest);
