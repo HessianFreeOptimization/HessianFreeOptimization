@@ -31,7 +31,7 @@ params.outtest = outtest;
 % fig1 = figure('color', [1 1 1]);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
-iters = 4;
+iters = 3000;
 trials = 20;
 
 records = cell(trials, 1);
