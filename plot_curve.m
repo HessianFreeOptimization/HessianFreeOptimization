@@ -2,7 +2,7 @@ function [ ] = plot_curve(llrecord,  errrecord, eval_s)
     if nargin == 2
         x_inds = 0:iters;
     else
-        x_inds = evals;
+        x_inds = eval_s;
     end
     iters = size(llrecord, 1) - 1;
     fig = figure('color', [1 1 1]);
