@@ -208,7 +208,7 @@ switch algorithm
     case 'adam'
         strategy = 7;
 end
-outputString( sprintf('================ %s Training for %d iters with strategy %d ================', algorithm, maxIter))
+outputString( sprintf('================ %s Training for %d iters with strategy %d ================', algorithm, maxIter, strategy))
 
 eta = 0.01;
 gamma = 0.9;
