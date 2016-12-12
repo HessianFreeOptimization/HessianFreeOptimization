@@ -4,8 +4,9 @@ function [ ] = plot_curve(records, fig)
     max_llrecord = 0;
     llrecord_mean = zeros(size(records{1}.llrecord(:,1)));
     errrecord_mean = zeros(size(records{1}.errrecord(:,1)));
+    trials = length(records);
     
-    for trial = 1:length(records)
+    for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
         if nargin == 2
             x_inds = 0:iters;
@@ -23,15 +24,15 @@ function [ ] = plot_curve(records, fig)
             max_llrecord = max(max(-records{trial}.llrecord));
         end
     end
-    llrecord_mean = llrecord_mean / length(records);
-    semilogy(x_inds, -records{trial}.llrecord(:,1),'r-', 'LineWidth', 2);
+    llrecord_mean = llrecord_mean / trials;
+    semilogy(x_inds, llrecord_mean,'r-', 'LineWidth', 2);
     grid on;
     max_llrecord
     ylim([0, max_llrecord]);
     title('objective');
     
     subplot(1,2,2);
-    for trial = 1:length(records)
+    for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
         if nargin == 2
             x_inds = 0:iters;
@@ -45,7 +46,8 @@ function [ ] = plot_curve(records, fig)
 %         semilogy(x_inds, records{trial}.errrecord(:,2),'b-');
 %         hold on;
     end
-    errrecord_mean = errrecord_mean 
+    errrecord_mean = errrecord_mean / trials;
+    semilogy(x_inds, errrecord_mean,'r-', 'LineWidth', 2.5);
     grid on;
     title('train/test error');
     ylim([0 1]);
