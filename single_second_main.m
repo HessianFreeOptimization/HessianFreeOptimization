@@ -41,6 +41,7 @@ records = cell(trials, 1);
 for trial = 1:trials
     eval_f = 0;
     eval_g = 0;
+    fprintf('===== trial %d of %d ===== \n', trial, trials);
     [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params);
     records{trial}.llrecord = llrecord;
     records{trial}.errrecord = errrecord;
