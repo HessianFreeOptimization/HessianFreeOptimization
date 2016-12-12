@@ -32,12 +32,12 @@ params.outtest = outtest;
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
 iters = 1500;
-trials = 12;
+trials = 15;
 algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
     'adagrad','RMSprop','adadelta','adam'};
 global eval_f;
 global eval_g;
-for al_iter = 5 : length(algorithms)
+for al_iter = 7 : length(algorithms)
     algorithm = algorithms{al_iter};
     records = cell(trials, 1);
     for trial = 1:trials
@@ -50,10 +50,10 @@ for al_iter = 5 : length(algorithms)
         records{trial}.eval_fs = eval_fs;
         records{trial}.eval_gs = eval_gs;
     end
-    save(sprintf('./saved/single_%s_for_%d_iter_test.mat', algorithm, iters), 'records');
+    save(sprintf('./saved/single_%s-for-%d_iter-%d_trials.mat', algorithm, iters, trials), 'records');
     % [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
-    fig1 = figure(1);
-    plot_curve(records, fig1);
+    % fig1 = figure(1);
+    % plot_curve(records, fig1);
 end
 %% plotting
 % close all
