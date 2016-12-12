@@ -35,13 +35,13 @@ iters = 3000;
 trials = 20;
 algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
     'adagrad','RMSprop','adadelta','adam'};
-for al_iter = 1 : length(algorithms)
+global eval_f;
+global eval_g;
+for al_iter = 5 : length(algorithms)
     algorithm = algorithms{al_iter};
     records = cell(trials, 1);
     for trial = 1:trials
-        global eval_f;
         eval_f = 0;
-        global eval_g;
         eval_g = 0;
         [llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters, params);
         records{trial}.llrecord = llrecord;
