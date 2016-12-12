@@ -19,10 +19,10 @@ outtest = zeros(10,size(intest,2));
 for i = 1:10
 	outtest(i,:) = (yt == i);
 end
-params.indata = indata(:, 1:10000);
-params.outdata = outdata(:, 1:10000);
-params.intest = intest(:, 1:2000);
-params.outtest = outtest(:, 1:2000);
+params.indata = indata(:, 1:5000);
+params.outdata = outdata(:, 1:5000);
+params.intest = intest(:, 1:1000);
+params.outtest = outtest(:, 1:1000);
 % params.indata = indata;
 % params.outdata = outdata;
 % params.intest = intest;
@@ -32,7 +32,7 @@ params.outtest = outtest(:, 1:2000);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
 iters = 3000;
-trials = 1;
+trials = 10;
 
 global eval_f;
 global eval_g;
