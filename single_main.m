@@ -31,6 +31,6 @@ eval_g = 0;
 %% training
 iters = 4000;
 [llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train('adam', iters, params);
-[llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
+% [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
 %%
 plot_curve(llrecord,  errrecord, eval_fs);
