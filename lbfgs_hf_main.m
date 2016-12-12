@@ -25,11 +25,11 @@ params.intest = intest;
 params.outtest = outtest;
 
 %% training
-gd_iters = 4000;
+gd_iters = 4;
 [llrecord, errrecord, weights] = gd_train('adam', gd_iters, params);
 save(sprintf('adam-%d.mat', gd_iters), 'llrecord', 'errrecord', 'weights');
-hf_iters = 1000;
-[llrecord2, errrecord2, weights2] = lbfgs_train(hf_iters, params, weights);
+hf_iters = 5;
+[llrecord2, errrecord2, weights2] = hf_train(hf_iters, params, weights);
 % [llrecord2, errrecord2, ~] = hf_train(60, layersizes, layertypes, params);
 save(sprintf('hf-%d-%d.mat', gd_iters, hf_iters), 'llrecord2', 'errrecord2', 'weights2');
 llrecord = [llrecord; llrecord2];

@@ -1,11 +1,16 @@
-function [llrecord, errrecord, paramsp] = hf_train(maxIter, layersizes, layertypes, indata, outdata, intest, outtest, paramsinit)
-
+function [llrecord, errrecord, paramsp] = hf_train(maxIter, params, paramsinit)
 % logging
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 
-%standard L_2 weight-decay:
-weight_decay = 2e-5;
+%standard L_2 weight-decay and params:
+weight_decay = params.weight_decay;
+layersizes = params.layersizes;
+layertypes = params.layertypes;
+indata = params.indata;
+outdata = params.outdata;
+intest = params.intest;
+outtest = params.outtest;
 
 % params for damping
 autodamp = 1;
@@ -15,12 +20,6 @@ boost = 1/drop;
 % the amount to decay the previous search direction for the
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
-
-% network structure
-layersizes = [25 30];
-layertypes = {'logistic', 'logistic', 'softmax'};
-% layersizes = [25];
-% layertypes = {'logistic', 'logistic'};
 
 % next try using autodamp = 0 for rho computation.  both for version 6 and
 % versions with rho and cg-backtrack computed on the training set
