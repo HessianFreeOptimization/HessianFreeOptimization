@@ -31,8 +31,8 @@ params.outtest = outtest;
 % fig1 = figure('color', [1 1 1]);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
-iters = 2000;
-trials = 20;
+iters = 1500;
+trials = 12;
 algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
     'adagrad','RMSprop','adadelta','adam'};
 global eval_f;
