@@ -1,6 +1,6 @@
 clc; clear; close all;
 %% network structure
-params.layersizes = [200 30];
+params.layersizes = [200];
 params.layertypes = {'logistic', 'logistic', 'softmax'};
 params.weight_decay = 2e-4;
 
@@ -19,14 +19,14 @@ outtest = zeros(10,size(intest,2));
 for i = 1:10
 	outtest(i,:) = (yt == i);
 end
-% params.indata = indata(:, 1000);
-% params.outdata = outdata(:, 1000);
-% params.intest = intest(:, 1000);
-% params.outtest = outtest(:, 1000);
-params.indata = indata;
-params.outdata = outdata;
-params.intest = intest;
-params.outtest = outtest;
+params.indata = indata(:, 10000);
+params.outdata = outdata(:, 10000);
+params.intest = intest(:, 2000);
+params.outtest = outtest(:, 2000);
+% params.indata = indata;
+% params.outdata = outdata;
+% params.intest = intest;
+% params.outtest = outtest;
 
 % fig1 = figure('color', [1 1 1]);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
