@@ -25,13 +25,13 @@ params.intest = intest;
 params.outtest = outtest;
 
 %% training
-gd_iters = 1000;
+gd_iters = 1500;
 [llrecord, errrecord, weights] = gd_train('adam', gd_iters, params);
 save(sprintf('adam-%d.mat', gd_iters), 'llrecord', 'errrecord', 'weights');
-hf_iters = 100;
+hf_iters = 500;
 [llrecord2, errrecord2, weights2] = lbfgs_train(hf_iters, params, weights);
 % [llrecord2, errrecord2, ~] = hf_train(60, layersizes, layertypes, params);
-save(sprintf('hf-%d.mat', gd_iters), 'llrecord2', 'errrecord2', 'weights2');
+save(sprintf('lbfgs-%d.mat', gd_iters), 'llrecord2', 'errrecord2', 'weights2');
 llrecord = [llrecord; llrecord2];
 errrecord = [errrecord; errrecord2];
 %%
