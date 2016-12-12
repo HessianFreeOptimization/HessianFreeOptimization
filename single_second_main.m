@@ -32,7 +32,7 @@ params.outtest = outtest(:, 1:2000);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
 iters = 3000;
-trials = 15;
+trials = 1;
 
 global eval_f;
 global eval_g;
