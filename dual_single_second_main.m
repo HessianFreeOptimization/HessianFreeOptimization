@@ -45,7 +45,7 @@ records = cell(1, 1);
 trial = 1;
 eval_f = 0;
 eval_g = 0;
-[llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters1, params);
+[llrecord, errrecord, weights, eval_fs, eval_gs] = lbfgs_train(iters2, params);
 records{trial}.llrecord = llrecord;
 records{trial}.errrecord = errrecord;
 records{trial}.weights = weights;
@@ -55,7 +55,7 @@ records{trial}.eval_gs = eval_gs;
 
 eval_f = records{trial}.eval_fs(end, 1);
 eval_g = records{trial}.eval_gs(end, 1);
-[llrecord, errrecord, weights, eval_fs, eval_gs] = lbfgs_train(iters2, params, weights);
+[llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters1, params, weights);
 records{trial}.llrecord = [records{trial}.llrecord; llrecord];
 records{trial}.errrecord = [records{trial}.errrecord; errrecord];
 records{trial}.weights = weights;
