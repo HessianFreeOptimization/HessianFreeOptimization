@@ -1,4 +1,4 @@
-function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1, min1, plots1, plots2, color, line, labelx_ind)
+function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_test, records, fig1, fig2, max1, min1, plots1, plots2, color, line, labelx_ind)
     max_llrecord = max1;
     min_llrecord = min1;
     llrecord_mean = zeros(size(records{1}.llrecord(:,1)));
@@ -8,20 +8,21 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_test, reco
     trials = length(records);
     
     alpha = 0.1;
-    
+    fig1 = figure(1);
     for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
         switch labelx_ind
             case 1
                 x_inds = 0:iters;
-                subplot(1, 2 ,1);
+%                 subplot(1, 2 ,1);
             case 2
                 x_inds = records{trial}.eval_fs;
-                subplot(2, 1 ,1);
+%                 subplot(2, 1 ,1);
             case 3
                 x_inds = records{trial}.eval_gs;
-                subplot(2, 1 ,1);
+%                 subplot(2, 1 ,1);
         end
+
 %         trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
 %         trial_curve.LineStyle = '-';
 %         trial_curve.Color(4) = alpha;
@@ -50,19 +51,22 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_test, reco
     end
     xlim([0, max(x_inds)]);
     
+%%
+    fig2 = figure(2);
     for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
-        switch labelx_ind
-            case 1
-                x_inds = 0:iters;
-                subplot(1, 2 ,2);
-            case 2
-                x_inds = records{trial}.eval_fs;
-                subplot(2, 1 ,2);
-            case 3
-                x_inds = records{trial}.eval_gs;
-                subplot(2, 1 ,2);
-        end
+%         switch labelx_ind
+%             case 1
+%                 x_inds = 0:iters;
+%                 subplot(1, 2 ,2);
+%             case 2
+%                 x_inds = records{trial}.eval_fs;
+%                 subplot(2, 1 ,2);
+%             case 3
+%                 x_inds = records{trial}.eval_gs;
+%                 subplot(2, 1 ,2);
+%         end
+
 %         trial_curve = plot(x_inds, records{trial}.errrecord(:,1), 'Color', color, 'LineWidth', 1.5);
 %         trial_curve.LineStyle = '-';
 %         trial_curve.Color(4) = alpha;
