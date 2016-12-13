@@ -1,4 +1,4 @@
-function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1, plots1, plots2, color, labelx_ind)
+function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1, plots1, plots2, color, line, labelx_ind)
     max_llrecord = max1;
     llrecord_mean = zeros(size(records{1}.llrecord(:,1)));
     errrecord_mean = zeros(size(records{1}.errrecord(:,1)));
@@ -21,7 +21,7 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
                 x_inds = records{trial}.eval_gs;
                 subplot(2, 1 ,1);
         end
-        trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
+        trial_curve = plot(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
         trial_curve.LineStyle = '-';
         trial_curve.Color(4) = alpha;
         llrecord_mean = llrecord_mean + (-records{trial}.llrecord(:,1));
@@ -30,7 +30,7 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
             max_llrecord = max(max(-records{trial}.llrecord));
         end
         if if_test
-%             trial_curve_test = semilogy(x_inds, -records{trial}.llrecord(:,2));
+%             trial_curve_test = plot(x_inds, -records{trial}.llrecord(:,2));
 %             trial_curve_test.LineStyle = '--';
 %             trial_curve_test.Color(4) = 0.2;
             hold on;
@@ -38,11 +38,11 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
         end
     end
     llrecord_mean = llrecord_mean / trials;
-    plot1 = semilogy(x_inds, llrecord_mean, '-', 'Color', color, 'LineWidth', 2.5); hold on;
+    plot1 = plot(x_inds, llrecord_mean, line, 'Color', color, 'LineWidth', 2.5); hold on;
     plots1 = [plots1; plot1];
     if if_test
         llrecord_mean_test = llrecord_mean_test / trials;
-        semilogy(x_inds, llrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5); hold on;
+        plot(x_inds, llrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5); hold on;
     end
     
     for trial = 1:trials
@@ -71,7 +71,7 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
         end
     end
     errrecord_mean = errrecord_mean / trials;
-    plot2 = plot(x_inds, errrecord_mean, '-', 'Color', color, 'LineWidth', 2.5); hold on;
+    plot2 = plot(x_inds, errrecord_mean, line, 'Color', color, 'LineWidth', 2.5); hold on;
     plots2 = [plots2; plot2];
     if if_test
         errrecord_mean_test = errrecord_mean_test / trials;
