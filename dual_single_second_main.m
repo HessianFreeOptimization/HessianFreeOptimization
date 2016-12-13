@@ -31,34 +31,35 @@ params.outtest = outtest(:, 1:1000);
 % fig1 = figure('color', [1 1 1]);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
-iters = 20000;
-trials = 1;
+% iters = 6000;
+iters1 = 500;
+iters2 = 5500;
 algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
     'adagrad','RMSprop','adadelta','adam', 'gradient descent with backtracking'};
 global eval_f;
 global eval_g;
-% for al_iter = 1 : length(algorithms)
-for al_iter = 1 : 4
-% for al_iter = 5 : length(algorithms)
-    algorithm = algorithms{al_iter};
-    records = cell(trials, 1);
-    for trial = 1:trials
-        fprintf('===== trial %d of %d ===== \n', trial, trials);
-        eval_f = 0;
-        eval_g = 0;
-        [llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters, params);
-        records{trial}.llrecord = llrecord;
-        records{trial}.errrecord = errrecord;
-        records{trial}.weights = weights;
-        records{trial}.eval_fs = eval_fs;
-        records{trial}.eval_gs = eval_gs;
-    end
-    save(sprintf('./saved/single_%s-for-%d_iters-%d_trials.mat', algorithm, iters, trials), 'records');
-    % [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
-    % fig1 = figure(1);
-    % plot_curve(records, fig1);
-end
-%% plotting
-% close all
-% fig1 = figure(1);
-% plot_curve(records, fig1);
+al_iter = 7;
+algorithm = algorithms{al_iter};
+records = cell(1, 1);
+
+trial = 1;
+eval_f = 0;
+eval_g = 0;
+[llrecord, errrecord, weights, eval_fs, eval_gs] = gd_train(algorithm, iters1, params);
+records{trial}.llrecord = llrecord;
+records{trial}.errrecord = errrecord;
+records{trial}.weights = weights;
+records{trial}.eval_fs = eval_fs;
+records{trial}.eval_gs = eval_gs;
+
+
+eval_f = records{trial}.eval_fs(end, 1);
+eval_g = records{trial}.eval_gs(end, 1);
+[llrecord, errrecord, weights, eval_fs, eval_gs] = lbfgs_train(iters2, params, weights);
+records{trials}.llrecord = [records{trials}.llrecord; llrecord];
+records{trial}.errrecord = [records{trial}.errrecord; errrecord];
+records{trial}.weights = weights;
+records{trial}.eval_fs = [records{trial}.eval_fs; eval_fs];
+records{trial}.eval_gs = [records{trial}.eval_gs; eval_gs];
+
+save(sprintf('./saved/single_%sAndLbfgs-for-%d_iters-%d_trials.mat', algorithm, iters1 + iters2, trials), 'records');
