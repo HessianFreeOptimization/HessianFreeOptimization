@@ -32,7 +32,7 @@ params.outtest = outtest(:, 1:1000);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
 iters = 3000;
-trials = 10;
+trials = 1;
 
 global eval_f;
 global eval_g;
@@ -49,7 +49,7 @@ for trial = 1:trials
     records{trial}.eval_fs = eval_fs;
     records{trial}.eval_gs = eval_gs;
 end
-save(sprintf('./saved/single_hf_for_%d_iter_test.mat', iters), 'records');
+save(sprintf('./saved/single_hessian-free-for-%d_iters-%d_trials.mat', iters, trials), 'records');
 % [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, weights);
 fig1 = figure(1);
 plot_curve(records, fig1);
