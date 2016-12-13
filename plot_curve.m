@@ -1,4 +1,4 @@
-function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1, plots1, plots2, color)
+function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1, plots1, plots2, color, labelx_ind)
     subplot(1,2,1);
     max_llrecord = max1;
     llrecord_mean = zeros(size(records{1}.llrecord(:,1)));
@@ -7,13 +7,21 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
     errrecord_mean_test = zeros(size(records{1}.errrecord(:,2)));
     trials = length(records);
     
+    alpha = 0.1;
+    
     for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
-        x_inds = 0:iters;
-%         x_inds = records{trial}.eval_gs;
+        switch labelx_ind
+            case 1
+                x_inds = 0:iters;
+            case 2
+                x_inds = records{trial}.eval_fs;
+            case 3
+                x_inds = records{trial}.eval_gs;
+        end
         trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
         trial_curve.LineStyle = '-';
-        trial_curve.Color(4) = 0.2;
+        trial_curve.Color(4) = alpha;
         llrecord_mean = llrecord_mean + (-records{trial}.llrecord(:,1));
         hold on;
         if max(max(-records{trial}.llrecord)) > max_llrecord
@@ -38,11 +46,17 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
     subplot(1,2,2);
     for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
-        x_inds = 0:iters;
-%         x_inds = records{trial}.eval_gs;
+        switch labelx_ind
+            case 1
+                x_inds = 0:iters;
+            case 2
+                x_inds = records{trial}.eval_fs;
+            case 3
+                x_inds = records{trial}.eval_gs;
+        end
         trial_curve = plot(x_inds, records{trial}.errrecord(:,1), 'Color', color, 'LineWidth', 1.5);
         trial_curve.LineStyle = '-';
-        trial_curve.Color(4) = 0.2;
+        trial_curve.Color(4) = alpha;
         errrecord_mean = errrecord_mean + records{trial}.errrecord(:,1);
         hold on;
         if if_test

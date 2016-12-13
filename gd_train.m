@@ -210,7 +210,7 @@ switch algorithm
 end
 outputString( sprintf('================ %s Training for %d iters with strategy %d ================', algorithm, maxIter, strategy))
 
-eta = 0.01;
+eta = 0.001;
 gamma = 0.9;
 beta1 = 0.9;
 beta2 = 0.999;
