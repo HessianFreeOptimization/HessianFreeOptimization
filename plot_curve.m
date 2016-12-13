@@ -1,5 +1,4 @@
 function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1, plots1, plots2, color, labelx_ind)
-    subplot(1,2,1);
     max_llrecord = max1;
     llrecord_mean = zeros(size(records{1}.llrecord(:,1)));
     errrecord_mean = zeros(size(records{1}.errrecord(:,1)));
@@ -14,10 +13,13 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
         switch labelx_ind
             case 1
                 x_inds = 0:iters;
+                subplot(1, 2 ,1);
             case 2
                 x_inds = records{trial}.eval_fs;
+                subplot(2, 1 ,1);
             case 3
                 x_inds = records{trial}.eval_gs;
+                subplot(2, 1 ,1);
         end
         trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
         trial_curve.LineStyle = '-';
@@ -43,16 +45,18 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
         semilogy(x_inds, llrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5); hold on;
     end
     
-    subplot(1,2,2);
     for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
         switch labelx_ind
             case 1
                 x_inds = 0:iters;
+                subplot(1, 2 ,2);
             case 2
                 x_inds = records{trial}.eval_fs;
+                subplot(2, 1 ,2);
             case 3
                 x_inds = records{trial}.eval_gs;
+                subplot(2, 1 ,2);
         end
         trial_curve = plot(x_inds, records{trial}.errrecord(:,1), 'Color', color, 'LineWidth', 1.5);
         trial_curve.LineStyle = '-';

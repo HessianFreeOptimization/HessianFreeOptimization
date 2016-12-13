@@ -1,10 +1,20 @@
-function [llrecord, errrecord] = gd_backtracking_train(algorithm, maxIter, layersizes, layertypes, indata, outdata, intest, outtest)
+function [llrecord, errrecord] = gd_backtracking_train(maxIter, maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
+eval_fs = zeros(maxIter+1,1);
+eval_gs = zeros(maxIter+1,1);
+global eval_f;
+global eval_g;
 
-%standard L_2 weight-decay:
-weight_decay = 2e-5;
+%standard L_2 weight-decay and params:
+weight_decay = params.weight_decay;
+layersizes = params.layersizes;
+layertypes = params.layertypes;
+indata = params.indata;
+outdata = params.outdata;
+intest = params.intest;
+outtest = params.outtest;
 
 autodamp = 1;
 drop = 2/3;
