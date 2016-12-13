@@ -1,7 +1,7 @@
 function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = gd_train(algorithm, maxIter, params, paramsinit)
 if strcmp(algorithm, 'gradient descent w/ backtracking')
     outputString( sprintf('================ %s Training for %d iters ================', algorithm, maxIter))
-    [llrecord, errrecord, paramsp, eval_fs, eval_gs] = gd_backtracking_train(maxIter, params, paramsinit);
+    [llrecord, errrecord, paramsp, eval_fs, eval_gs] = gd_backtracking_train(maxIter, params);
     return;
 end
 
