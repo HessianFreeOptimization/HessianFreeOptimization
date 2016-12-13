@@ -56,10 +56,10 @@ records{trial}.eval_gs = eval_gs;
 eval_f = records{trial}.eval_fs(end, 1);
 eval_g = records{trial}.eval_gs(end, 1);
 [llrecord, errrecord, weights, eval_fs, eval_gs] = lbfgs_train(iters2, params, weights);
-records{trials}.llrecord = [records{trials}.llrecord; llrecord];
+records{trial}.llrecord = [records{trial}.llrecord; llrecord];
 records{trial}.errrecord = [records{trial}.errrecord; errrecord];
 records{trial}.weights = weights;
 records{trial}.eval_fs = [records{trial}.eval_fs; eval_fs];
 records{trial}.eval_gs = [records{trial}.eval_gs; eval_gs];
 
-save(sprintf('./saved/single_%sAndLbfgs-for-%d_iters-%d_trials.mat', algorithm, iters1 + iters2, trials), 'records');
+save(sprintf('./saved/single_%sAndLbfgs-for-%d_iters-%d_trials.mat', algorithm, iters1 + iters2, trial), 'records');
