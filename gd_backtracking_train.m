@@ -122,17 +122,21 @@ times = zeros(maxIter,1);
 totalpasses = 0;
 
 % initialization of params.
-paramsp = zeros(psize,1);
-[Wtmp,btmp] = unpack(paramsp);
-numconn = 15;
-for i = 1:numlayers
-    initcoeff = 1;
-    for j = 1:layersizes(i+1)
-        idx = ceil(layersizes(i)*rand(1,numconn));
-        Wtmp{i}(j,idx) = randn(numconn,1)*initcoeff;
+if nargin == 2
+    paramsp = zeros(psize,1);
+    [Wtmp,btmp] = unpack(paramsp);
+    numconn = 15;
+    for i = 1:numlayers
+        initcoeff = 1;
+        for j = 1:layersizes(i+1)
+            idx = ceil(layersizes(i)*rand(1,numconn));
+            Wtmp{i}(j,idx) = randn(numconn,1)*initcoeff;
+        end
     end
+    paramsp = pack(Wtmp, btmp);
+else
+    paramsp = paramsinit;
 end
-paramsp = pack(Wtmp, btmp);
 
 function grad = calcu_grad(paramsp)
     [Wu, bu] = unpack(paramsp);
