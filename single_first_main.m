@@ -34,7 +34,7 @@ params.outtest = outtest(:, 1:1000);
 iters = 20000;
 trials = 1;
 algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
-    'adagrad','RMSprop','adadelta','adam'};
+    'adagrad','RMSprop','adadelta','adam', 'gradient descent w/ backtracking'};
 global eval_f;
 global eval_g;
 % for al_iter = 1 : length(algorithms)

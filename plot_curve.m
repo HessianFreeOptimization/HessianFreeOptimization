@@ -21,7 +21,7 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
                 x_inds = records{trial}.eval_gs;
                 subplot(2, 1 ,1);
         end
-        trial_curve = plot(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
+        trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
         trial_curve.LineStyle = '-';
         trial_curve.Color(4) = alpha;
         llrecord_mean = llrecord_mean + (-records{trial}.llrecord(:,1));
@@ -30,7 +30,7 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
             max_llrecord = max(max(-records{trial}.llrecord));
         end
         if if_test
-%             trial_curve_test = plot(x_inds, -records{trial}.llrecord(:,2));
+%             trial_curve_test = semilogy(x_inds, -records{trial}.llrecord(:,2));
 %             trial_curve_test.LineStyle = '--';
 %             trial_curve_test.Color(4) = 0.2;
             hold on;
@@ -38,11 +38,11 @@ function [max_llrecord, plots1, plots2] = plot_curve(if_test, records, fig, max1
         end
     end
     llrecord_mean = llrecord_mean / trials;
-    plot1 = plot(x_inds, llrecord_mean, line, 'Color', color, 'LineWidth', 2.5); hold on;
+    plot1 = semilogy(x_inds, llrecord_mean, line, 'Color', color, 'LineWidth', 2.5); hold on;
     plots1 = [plots1; plot1];
     if if_test
         llrecord_mean_test = llrecord_mean_test / trials;
-        plot(x_inds, llrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5); hold on;
+        semilogy(x_inds, llrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5); hold on;
     end
     
     for trial = 1:trials
