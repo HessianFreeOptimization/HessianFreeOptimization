@@ -16,6 +16,7 @@ iters = [base_iters, base_iters, base_iters, base_iters, ...
     base_iters, base_iters, base_iters, base_iters, ...
     base_iters, 3000, base_iters];
 max1 = 0;
+min1 = Inf;
 algorithms_plot = {};
 algorithms_plot_count = 0;
 plots1 = [];
@@ -31,7 +32,7 @@ for al_iter = 1 : length(algorithms)
     file_name = sprintf('./saved/single_%s-for-%d_iters-%d_trials.mat', algorithm, iters(al_iter), trials(al_iter));
     if exist(file_name, 'file') == 2
         load(file_name);
-        [max1, plots1, plots2] = plot_curve(false, records, fig1, max1, plots1, plots2, colors(al_iter, :), lines{al_iter}, labelx_ind);
+        [max1, min1, plots1, plots2] = plot_curve(false, records, fig1, max1, min1, plots1, plots2, colors(al_iter, :), lines{al_iter}, labelx_ind);
         hold on;
         algorithms_plot_count = algorithms_plot_count + 1;
         algorithms_plot{algorithms_plot_count} = algorithm;
@@ -48,7 +49,7 @@ switch labelx_ind
 end
 grid on;
 legend(plots1, algorithms_plot);
-ylim([0, max1]);
+ylim([min1, max1]);
 xlabel(labelx);
 ylabel('objective value');
 title('objective');
