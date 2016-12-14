@@ -21,6 +21,7 @@ for i = 1:10
 end
 params.indata = indata(:, 1:5000);
 params.outdata = outdata(:, 1:5000);
+
 params.intest = intest(:, 1:1000);
 params.outtest = outtest(:, 1:1000);
 % params.indata = indata;
