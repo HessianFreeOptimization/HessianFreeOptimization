@@ -1,4 +1,4 @@
-function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_test, records, fig1, fig2, max1, min1, plots1, plots2, color, line, labelx_ind)
+function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_plot, if_test, records, fig1, fig2, max1, min1, plots1, plots2, color, line, labelx_ind)
     max_llrecord = max1;
     min_llrecord = min1;
     llrecord_mean = zeros(size(records{1}.llrecord(:,1)));
@@ -43,13 +43,15 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_test, reco
         end
     end
     llrecord_mean = llrecord_mean / trials;
-    plot1 = semilogy(x_inds, llrecord_mean, line, 'Color', color, 'LineWidth', 2.5); hold on;
-    plots1 = [plots1; plot1];
-    if if_test
-        llrecord_mean_test = llrecord_mean_test / trials;
-        semilogy(x_inds, llrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5); hold on;
+    if if_plot
+        plot1 = semilogy(x_inds, llrecord_mean - min1, line, 'Color', color, 'LineWidth', 2.5); hold on;
+        plots1 = [plots1; plot1];
+        if if_test
+            llrecord_mean_test = llrecord_mean_test / trials;
+            semilogy(x_inds, llrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5); hold on;
+        end
+%         xlim([0, max(x_inds)]);
     end
-    xlim([0, max(x_inds)]);
     
 %%
     fig2 = figure(2);
@@ -80,11 +82,13 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_test, reco
         end
     end
     errrecord_mean = errrecord_mean / trials;
-    plot2 = plot(x_inds, errrecord_mean, line, 'Color', color, 'LineWidth', 2.5); hold on;
-    plots2 = [plots2; plot2];
-    if if_test
-        errrecord_mean_test = errrecord_mean_test / trials;
-        plot(x_inds, errrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5);
+    if if_plot
+        plot2 = plot(x_inds, errrecord_mean, line, 'Color', color, 'LineWidth', 2.5); hold on;
+        plots2 = [plots2; plot2];
+        if if_test
+            errrecord_mean_test = errrecord_mean_test / trials;
+            plot(x_inds, errrecord_mean_test, '--', 'Color', color, 'LineWidth', 2.5);
+        end
+%         xlim([0, max(x_inds)]);
     end
-    xlim([0, max(x_inds)]);
 end
