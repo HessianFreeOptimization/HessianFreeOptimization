@@ -1,5 +1,5 @@
-function [xs, is] = conjgrad_1( Afunc, b, x0, maxiters, miniters, Mdiag )
-
+function [xs, is] = conjgrad_1( Afunc, b, x0, maxiters, miniters, Mdiag)
+global eval_cg;
 
 tolerance = 5e-4;
 
@@ -81,7 +81,7 @@ for i = 1:maxiters
         break;
     end    
     
-    
+    eval_cg = eval_cg + 1;
 end
 
 if i ~= ceil(inext)

@@ -296,7 +296,7 @@ for epoch = 1:maxIter
     precon = ones(psize,1);
     
     % ==> conjugate grad descent and back-tracking
-    [chs, iterses] = conjgrad_1( @(V)-computeGV(V), grad, ch, ceil(maxiters), ceil(miniters), precon );
+    [chs, iterses] = conjgrad_1( @(V)-computeGV(V), grad, ch, ceil(maxiters), ceil(miniters), precon);
 
     ch = chs{end};
     iters = iterses(end);

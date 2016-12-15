@@ -36,11 +36,13 @@ trials = 1;
 
 global eval_f;
 global eval_g;
+global eval_cg;
 
 records = cell(trials, 1);
 for trial = 1:trials
     eval_f = 0;
     eval_g = 0;
+    eval_cg = 0;
     fprintf('===== trial %d of %d ===== \n', trial, trials);
     if_damping = false;
     if_cgbk = true;
@@ -50,5 +52,6 @@ for trial = 1:trials
     records{trial}.weights = weights;
     records{trial}.eval_fs = eval_fs;
     records{trial}.eval_gs = eval_gs;
+    records{trial}.eval_cg = eval_cg;
 end
 save(sprintf('./saved/single_hessian-free-noDamp-for-%d_iters-%d_trials.mat', iters, trials), 'records');

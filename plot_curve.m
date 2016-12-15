@@ -7,7 +7,7 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_plot, if_t
     errrecord_mean_test = zeros(size(records{1}.errrecord(:,2)));
     trials = length(records);
     
-    alpha = 0.1;
+    alpha = 0.3;
     fig1 = figure(1);
     for trial = 1:trials
         iters = size(records{trial}.llrecord, 1) - 1;
@@ -23,10 +23,10 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_plot, if_t
 %                 subplot(2, 1 ,1);
         end
 
-%         trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1), 'Color', color, 'LineWidth', 1.5);
-%         trial_curve.LineStyle = '-';
-%         trial_curve.Color(4) = alpha;
-%         hold on;
+        trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1) - min1, 'Color', color, 'LineWidth', 1);
+        trial_curve.LineStyle = '-';
+        trial_curve.Color(4) = alpha;
+        hold on;
         llrecord_mean = llrecord_mean + (-records{trial}.llrecord(:,1));
         if max(max(-records{trial}.llrecord)) > max_llrecord
             max_llrecord = max(max(-records{trial}.llrecord));

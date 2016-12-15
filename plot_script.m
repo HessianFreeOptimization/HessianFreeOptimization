@@ -7,17 +7,17 @@ fig2 = figure(2);
 fig2.Position = [100, 100, 400, 300];
 algorithms = {'gradient descent', 'gradient descent with backtracking', 'nesterov accelerated gradient','momentum',...
     'adagrad','RMSprop','adadelta','adam',...
-    'lbfgs', 'hessian-free', 'lbfgs-mom'};
+    'lbfgs', 'hessian-free', 'hessian-free-noBK', 'lbfgs-mom'};
 lines =  {'-', '-', '-', ...
     '-', '-', '-', '-', '-', ...
     '--', '--', '-.'};
 trials = [10, 5, 5, 5, ...
     5, 10, 5, 5, ...
-    10, 5, 1];
+    10, 5, 1, 1];
 base_iters = 6000;
 iters = [base_iters, base_iters, base_iters, base_iters, ...
     base_iters, base_iters, base_iters, base_iters, ...
-    base_iters, base_iters, 1000];
+    base_iters, base_iters, 1000, 1000];
 max1 = 0;
 min1 = Inf;
 algorithms_plot = {};
@@ -27,12 +27,12 @@ plots2 = [];
 colors = distinguishable_colors(length(algorithms));
 
 % labelx = 'epoch'; labelx_ind = 1;
-% labelx = 'evals of objective'; labelx_ind = 2;
-labelx = 'evals of gradient'; labelx_ind = 3;
+labelx = 'evals of objective'; labelx_ind = 2;
+% labelx = 'evals of gradient'; labelx_ind = 3;
 
 % selected = [1, 2, 9, 10];
 % selected = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-selected = [9, 11];
+selected = [9, 10, 11];
 
 for index = 1 : length(selected)
     al_iter = selected(index);
