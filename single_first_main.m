@@ -31,15 +31,15 @@ params.outtest = outtest(:, 1:1000);
 % fig1 = figure('color', [1 1 1]);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
-iters = 20000;
-trials = 1;
+iters = 6000;
+trials = 5;
 algorithms = {'gradient descent','momentum','nesterov accelerated gradient',...
     'adagrad','RMSprop','adadelta','adam', 'gradient descent with backtracking'};
 global eval_f;
 global eval_g;
 % for al_iter = 1 : length(algorithms)
-for al_iter = 1 : 4
-% for al_iter = 5 : length(algorithms)
+% for al_iter = 1 : 4
+for al_iter = 5 : length(algorithms)
     algorithm = algorithms{al_iter};
     records = cell(trials, 1);
     for trial = 1:trials

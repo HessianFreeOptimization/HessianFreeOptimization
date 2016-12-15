@@ -42,7 +42,7 @@ for trial = 1:trials
     eval_f = 0;
     eval_g = 0;
     fprintf('===== trial %d of %d ===== \n', trial, trials);
-    if_damping = true;
+    if_damping = false;
     if_bk = true;
     [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, if_damping, if_bk);
     records{trial}.llrecord = llrecord;
@@ -51,4 +51,4 @@ for trial = 1:trials
     records{trial}.eval_fs = eval_fs;
     records{trial}.eval_gs = eval_gs;
 end
-save(sprintf('./saved/single_hessian-free-for-%d_iters-%d_trials.mat', iters, trials), 'records');
+save(sprintf('./saved/single_hessian-free-noDamp-for-%d_iters-%d_trials.mat', iters, trials), 'records');

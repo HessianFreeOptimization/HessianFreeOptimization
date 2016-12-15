@@ -328,7 +328,7 @@ for epoch = 1:maxIter
     [oldll_chunk, olderr_chunk] = computeLL(paramsp, indata, outdata);
 
     %disabling 
-    when computing rho is something I'm not 100% sure
+    % when computing rho is something I'm not 100% sure
     autodamp = 0;
     denom = -0.5*chs{j}'*computeGV(chs{j}) - grad'*chs{j};
     autodamp = 1;
