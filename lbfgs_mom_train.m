@@ -293,7 +293,7 @@ lbfgs_m = 7;
 bfgs_s = [];
 bfgs_y = [];
 for epoch = 1:maxIter
-
+    
     bfgs_q = -grad;
     bfgs_p = bfgs_q;
     if epoch ~= 1
@@ -311,13 +311,13 @@ for epoch = 1:maxIter
     end
     
     
-    isAda = true;
-    if isAda
+    isMomentum = true;
+    if isMomentum
+        outputString(['Momentum trial: ', num2str(params.trial)]);
         [xn,v,mt,vt,diagG,Eg2,Et2] = gradupdate(2,bfgs_p,paramsp,xoo,v,diagG,Eg2,Et2,...
             mt,vt,epoch,eta,gamma,beta1,beta2,epsilon);
         xoo = paramsp;
         paramsp = xn;
-        %grad = calcu_grad(paramsp);
     else
         paramsp = paramsp + eta*bfgs_p;
     end

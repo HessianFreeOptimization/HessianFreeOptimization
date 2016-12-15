@@ -23,16 +23,10 @@ params.indata = indata(:, 1:5000);
 params.outdata = outdata(:, 1:5000);
 params.intest = intest(:, 1:1000);
 params.outtest = outtest(:, 1:1000);
-% params.indata = indata;
-% params.outdata = outdata;
-% params.intest = intest;
-% params.outtest = outtest;
 
-% fig1 = figure('color', [1 1 1]);
-% set(fig1, 'Position', [10, 10, 1000, 400]);
 % training
-iters = 400;
-trials = 1;
+iters = 6000;
+trials = 10;
 
 global eval_f;
 global eval_g;
@@ -43,6 +37,7 @@ for trial = 1:trials
     eval_f = 0;
     global eval_g;
     eval_g = 0;
+    params.trial = trial;
     [llrecord, errrecord, weights, eval_fs, eval_gs] = lbfgs_mom_train(iters, params);
     records{trial}.llrecord = llrecord;
     records{trial}.errrecord = errrecord;
@@ -51,27 +46,3 @@ for trial = 1:trials
     records{trial}.eval_gs = eval_gs;
 end
 save(sprintf('./saved/single_lbfgs-mom-for-%d_iters-%d_trials.mat', iters, trials), 'records');
-
-
-%
-load('saved/single_lbfgs-mom-for-400_iters-1_trials.mat');
-errrecord = records{1,1}.errrecord;
-llrecord = -records{1,1}.llrecord;
-fig = figure('color',[1 1 1]);
-subplot(1,2,1);
-lowest = 0.101796989629257;
-semilogy(llrecord(:,1)-lowest,'r');
-hold on;
-semilogy(llrecord(:,2)-lowest,'b');
-ylim([0 6]);
-title('loss');
-
-subplot(1,2,2);
-plot(errrecord(:,1),'r');
-hold on;
-plot(errrecord(:,2),'b');
-ylim([0 1]);
-title('error');
-
-set(fig, 'Position', [10, 10, 1000, 400]);
-
