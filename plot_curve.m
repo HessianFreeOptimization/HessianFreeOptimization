@@ -23,12 +23,12 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_plot, if_t
 %                 subplot(2, 1 ,1);
         end
         
-%         if if_plot
-%             trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1) - min1, 'Color', color, 'LineWidth', 1);
-%             trial_curve.LineStyle = '-';
-%             trial_curve.Color(4) = alpha;
-%             hold on;
-%         end
+        if if_plot
+            trial_curve = semilogy(x_inds, -records{trial}.llrecord(:,1) - min1, 'Color', color, 'LineWidth', 1);
+            trial_curve.LineStyle = '-';
+            trial_curve.Color(4) = alpha;
+            hold on;
+        end
         llrecord_mean = llrecord_mean + (-records{trial}.llrecord(:,1));
         if max(max(-records{trial}.llrecord)) > max_llrecord
             max_llrecord = max(max(-records{trial}.llrecord));
@@ -47,6 +47,7 @@ function [max_llrecord, min_llrecord, plots1, plots2] = plot_curve(if_plot, if_t
     llrecord_mean = llrecord_mean / trials;
     if if_plot
         plot1 = semilogy(x_inds, llrecord_mean - min1, line, 'Color', color, 'LineWidth', 2.5); hold on;
+        uistack(plot1, 'top')
         plots1 = [plots1; plot1];
         if if_test
             llrecord_mean_test = llrecord_mean_test / trials;

@@ -32,7 +32,7 @@ params.outtest = outtest(:, 1:1000);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
 iters = 6000;
-trials = 1;
+trials = 2;
 
 global eval_f;
 global eval_g;
@@ -54,4 +54,4 @@ for trial = 1:trials
     records{trial}.eval_gs = eval_gs;
     records{trial}.eval_cg = eval_cg;
 end
-save(sprintf('./saved/single_hessian-free-noDamp-for-%d_iters-%d_trials.mat', iters, trials), 'records');
+save(sprintf('./saved/single_hessian-free-noDamp-BT-for-%d_iters-%d_trials.mat', iters, trials), 'records');
