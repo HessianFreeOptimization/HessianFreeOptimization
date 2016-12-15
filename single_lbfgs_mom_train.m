@@ -31,7 +31,7 @@ params.outtest = outtest(:, 1:1000);
 % fig1 = figure('color', [1 1 1]);
 % set(fig1, 'Position', [10, 10, 1000, 400]);
 % training
-iters = 1000;
+iters = 400;
 trials = 1;
 
 global eval_f;
@@ -53,15 +53,16 @@ end
 save(sprintf('./saved/single_lbfgs-mom-for-%d_iters-%d_trials.mat', iters, trials), 'records');
 
 
-%%
-load('saved/single_lbfgs-mom-for-1000_iters-1_trials.mat');
+%
+load('saved/single_lbfgs-mom-for-400_iters-1_trials.mat');
 errrecord = records{1,1}.errrecord;
 llrecord = -records{1,1}.llrecord;
 fig = figure('color',[1 1 1]);
 subplot(1,2,1);
-plot(llrecord(:,1),'r');
+lowest = 0.101796989629257;
+semilogy(llrecord(:,1)-lowest,'r');
 hold on;
-plot(llrecord(:,2),'b');
+semilogy(llrecord(:,2)-lowest,'b');
 ylim([0 6]);
 title('loss');
 

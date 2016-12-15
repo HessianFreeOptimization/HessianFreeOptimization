@@ -293,11 +293,7 @@ lbfgs_m = 7;
 bfgs_s = [];
 bfgs_y = [];
 for epoch = 1:maxIter
-    
-    
-    
-    
-    
+
     bfgs_q = -grad;
     bfgs_p = bfgs_q;
     if epoch ~= 1
@@ -314,10 +310,22 @@ for epoch = 1:maxIter
         end
     end
     
-    [ll, err] = computeLL(paramsp + eta*bfgs_p, indata, outdata);
+    
+    isAda = true;
+    if isAda
+        [xn,v,mt,vt,diagG,Eg2,Et2] = gradupdate(2,bfgs_p,paramsp,xoo,v,diagG,Eg2,Et2,...
+            mt,vt,epoch,eta,gamma,beta1,beta2,epsilon);
+        xoo = paramsp;
+        paramsp = xn;
+        %grad = calcu_grad(paramsp);
+    else
+        paramsp = paramsp + eta*bfgs_p;
+    end
+
+    [ll, err] = computeLL(paramsp, indata, outdata);
     
     bfgs_s = [bfgs_s, eta*bfgs_p];
-    paramsp = paramsp + eta*bfgs_p;
+    
     gradold = grad;
     grad = calcu_grad(paramsp);
     fprintf('epoch: %d\t\n',epoch);
