@@ -254,7 +254,25 @@ end
 
 outputString(sprintf('================ Start LBFGS Training for %d iters... ================', maxIter))
 % Main part: train and test.
-    
+
+eta = 0.01;
+gamma = 0.9;
+beta1 = 0.9;
+beta2 = 0.999;
+epsilon = 1e-8;
+
+m = size(paramsp,1);
+
+xoo = paramsp;
+v = zeros(m,1);
+diagG = zeros(m,1);
+Eg2 = zeros(m,1);
+Et2 = zeros(m,1);
+mt = zeros(m,1);
+vt = zeros(m,1);
+
+
+
 [ll, err] = computeLL(paramsp, indata, outdata);
 llrecord(1,1) = ll;
 errrecord(1,1) = err;
@@ -271,15 +289,19 @@ outputString( '' );
 tic
 grad = calcu_grad(paramsp);
 
-m = 7;
-l = size(paramsp,1);
+lbfgs_m = 7;
 bfgs_s = [];
 bfgs_y = [];
 for epoch = 1:maxIter
+    
+    
+    
+    
+    
     bfgs_q = -grad;
     bfgs_p = bfgs_q;
     if epoch ~= 1
-        alpha = zeros(1,m);
+        alpha = zeros(1,lbfgs_m);
         for i = size(bfgs_s,2):-1:1
             alpha(i) = bfgs_s(:,i)'*bfgs_q / (bfgs_y(:,i)'*bfgs_s(:,i));
             bfgs_q = bfgs_q - alpha(i)*bfgs_y(:,i);
@@ -291,34 +313,19 @@ for epoch = 1:maxIter
             bfgs_p = bfgs_p + (alpha(i) - beta)*bfgs_s(:,i);
         end
     end
-
-    step = 1;
-    c = 10^(-2);
-    j = 0;
-    oldll = ll;
-    [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
-    while j < 60
-        if ll >= oldll - c*step*grad'*bfgs_p
-            break;
-        else
-            %disp('hi')
-            step = 0.8*step;
-            j = j + 1;
-            % oldll = ll;
-            [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
-        end
-    end
-
-    bfgs_s = [bfgs_s, step*bfgs_p];
-    paramsp = paramsp + step*bfgs_p;
+    
+    [ll, err] = computeLL(paramsp + eta*bfgs_p, indata, outdata);
+    
+    bfgs_s = [bfgs_s, eta*bfgs_p];
+    paramsp = paramsp + eta*bfgs_p;
     gradold = grad;
     grad = calcu_grad(paramsp);
     fprintf('epoch: %d\t\n',epoch);
-    outputString( ['#backtracking: ' num2str(j) ', step size: ' num2str(step)] );
+    outputString( ['no backtracking, step size: ' num2str(eta)] );
 
     bfgs_y = [bfgs_y, grad - gradold];
 
-    if size(bfgs_s,2) > m
+    if size(bfgs_s,2) > lbfgs_m
         bfgs_s = bfgs_s(:,2:end);
         bfgs_y = bfgs_y(:,2:end);
     end
