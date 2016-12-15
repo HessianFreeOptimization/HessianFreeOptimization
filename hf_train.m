@@ -1,4 +1,4 @@
-function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = hf_train(maxIter, params, paramsinit)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = hf_train(maxIter, params, paramsinit, if_damping, if_bk)
 % logging
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -137,7 +137,7 @@ function GV = computeGV(V)
     GV = pack(GVW, GVb);
     GV = GV / numcases;
     GV = GV - weight_decay*(V);
-    if autodamp
+    if and(autodamp, if_damping)
 %         fprintf('Auto-damping enabled! \n');
         GV = GV - lambda*V;
     end
@@ -305,27 +305,30 @@ for epoch = 1:maxIter
     outputString( ['CG steps used: ' num2str(iters) ', total is: ' num2str(totalpasses) ', ch magnitude : ' num2str(norm(ch))] );
 
     j = length(chs);
-    %"CG-backtracking":
+    %"CG iteration backtracking":
     %full training set version:
-    [ll, err] = computeLL(paramsp + p, indata, outdata);
-    for j = (length(chs)-1):-1:1
-        [lowll, lowerr] = computeLL(paramsp + chs{j}, indata, outdata);
-        if ll > lowll
-            j = j+1;
-            break;
+    if if_bk
+        [ll, err] = computeLL(paramsp + p, indata, outdata);
+        for j = (length(chs)-1):-1:1
+            [lowll, lowerr] = computeLL(paramsp + chs{j}, indata, outdata);
+            if ll > lowll
+                j = j+1;
+                break;
+            end
+            ll = lowll;
+            err = lowerr;
         end
-        ll = lowll;
-        err = lowerr;
+        if isempty(j)
+            j = 1;
+        end
+        p = chs{j};
     end
-    if isempty(j)
-        j = 1;
-    end
-    p = chs{j};
 
     [ll_chunk, err_chunk] = computeLL(paramsp + chs{j}, indata, outdata);
     [oldll_chunk, olderr_chunk] = computeLL(paramsp, indata, outdata);
 
-    %disabling damping when computing rho is something I'm not 100% sure
+    %disabling 
+    when computing rho is something I'm not 100% sure
     autodamp = 0;
     denom = -0.5*chs{j}'*computeGV(chs{j}) - grad'*chs{j};
     autodamp = 1;
@@ -355,7 +358,7 @@ for epoch = 1:maxIter
         ll = oldll;
     end
 
-    % damping heuristic
+    % parameters for damping heuristic
     if rho < 0.25 || isnan(rho)
         lambda = lambda*boost;
     elseif rho > 0.75

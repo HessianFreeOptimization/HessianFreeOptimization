@@ -42,7 +42,9 @@ for trial = 1:trials
     eval_f = 0;
     eval_g = 0;
     fprintf('===== trial %d of %d ===== \n', trial, trials);
-    [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params);
+    if_damping = true;
+    if_bk = true;
+    [llrecord, errrecord, weights, eval_fs, eval_gs] = hf_train(iters, params, if_damping, if_bk);
     records{trial}.llrecord = llrecord;
     records{trial}.errrecord = errrecord;
     records{trial}.weights = weights;
