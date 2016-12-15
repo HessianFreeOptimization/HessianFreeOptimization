@@ -6,6 +6,7 @@ eval_fs = zeros(maxIter+1,1);
 eval_gs = zeros(maxIter+1,1);
 global eval_f;
 global eval_g;
+global eval_cg;
 
 %standard L_2 weight-decay and params:
 weight_decay = params.weight_decay;
@@ -317,6 +318,7 @@ for epoch = 1:maxIter
             end
             ll = lowll;
             err = lowerr;
+            eval_cg = eval_cg - 1;
         end
         if isempty(j)
             j = 1;
