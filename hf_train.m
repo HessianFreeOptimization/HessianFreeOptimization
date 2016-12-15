@@ -1,4 +1,4 @@
-function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = hf_train(maxIter, params, paramsinit, if_damping, if_bk)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = hf_train(maxIter, params, if_damping, if_bk, paramsinit)
 % logging
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -184,7 +184,7 @@ times = zeros(maxIter,1);
 totalpasses = 0;
 
 % initialization of params: random init
-if nargin == 2
+if nargin == 4
     paramsp = zeros(psize,1);
     [Wtmp,btmp] = unpack(paramsp);
     numconn = 15;
