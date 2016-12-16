@@ -24,5 +24,5 @@ end
 
 [llrecord, errrecord] = hf_train(maxIter, layersizes, layertypes, indata, outdata, intest, outtest);
 
-%%
 plot_curve(llrecord,  errrecord);
+%EOF.
