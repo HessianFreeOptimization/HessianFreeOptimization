@@ -1,3 +1,4 @@
+% adaptive 1st-order method
 clc; clear; close all;
 maxIter = 100;
 
@@ -6,6 +7,7 @@ layersizes = [25 30];
 layertypes = {'logistic', 'logistic', 'softmax'};
 algorithm = {'gradient descent','momentum','nesterov accelerated gradient',...
     'adagrad','RMSprop','adadelta','adam'};
+% Adam here.
 algorithm = algorithm{7};
 
 % load datasets.
@@ -26,5 +28,5 @@ end
 
 [llrecord, errrecord, params] = gd_train(algorithm, maxIter, layersizes, layertypes, indata, outdata, intest, outtest);
 
-%%
 plot_curve(llrecord,  errrecord);
+%EOF.
