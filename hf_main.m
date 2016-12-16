@@ -1,5 +1,6 @@
 clc; clear; close all;
 maxIter = 20;
+
 % network structure
 layersizes = [25 30];
 layertypes = {'logistic', 'logistic', 'softmax'};
