@@ -24,11 +24,6 @@ for i = 1:10
 	outtest(i,:) = (yt == i);
 end
 
-% indata = indata(:,1:3000);
-% outdata = outdata(:,1:3000);
-% intest = intest(:,1:3000);
-% outtest = outtest(:,1:3000);
-
 [llrecord, errrecord] = gd_backtracking_train(algorithm, maxIter, layersizes, layertypes, indata, outdata, intest, outtest);
 
 fig = figure('color', [1 1 1]);
@@ -42,3 +37,4 @@ hold on;
 plot(0:maxIter, errrecord(:,2),'bx-');
 ylim([0 1]);
 set(fig, 'Position', [10, 10, 1000, 400]);
+%EOF.
