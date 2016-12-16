@@ -23,13 +23,7 @@ params.indata = indata(:, 1:5000);
 params.outdata = outdata(:, 1:5000);
 params.intest = intest(:, 1:1000);
 params.outtest = outtest(:, 1:1000);
-% params.indata = indata;
-% params.outdata = outdata;
-% params.intest = intest;
-% params.outtest = outtest;
 
-% fig1 = figure('color', [1 1 1]);
-% set(fig1, 'Position', [10, 10, 1000, 400]);
 %% training
 iters = 6000;
 trials = 1;
@@ -49,3 +43,4 @@ for trial = 1:trials
     records{trial}.eval_gs = eval_gs;
 end
 save(sprintf('./saved/single_lbfgs-for-%d_iters-%d_trials.mat', iters, trials), 'records');
+%EOF.
