@@ -1,3 +1,4 @@
+% GD w/ backtracking
 function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = gd_backtracking_train(maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
@@ -9,6 +10,7 @@ global eval_g;
 
 %standard L_2 weight-decay and params:
 weight_decay = params.weight_decay;
+
 layersizes = params.layersizes;
 layertypes = params.layertypes;
 indata = params.indata;
@@ -22,29 +24,7 @@ boost = 1/drop;
 
 % the amount to decay the previous search direction for the
 % purposes of initializing the next run of CG.
-decay = 0.95; % Should be 0.95
-
-%next try using autodamp = 0 for rho computation.  both for version 6 and
-%versions with rho and cg-backtrack computed on the training set
-%mattype = 'gn'; %Curvature matrix: Gauss-Newton.
-
-% IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
-% `maxiters' (harder).  Also, if your particular application is still not working the next 
-% most likely way to fix it is tweaking the variable `initcoeff' which controls
-% overall magnitude of the initial random weights.  Please don't treat this code like a black-box,
-% get a negative result, and then publish a paper about how the approach doesn't work :)  And if
-% you are running into difficulties feel free to e-mail me at james.martens@gmail.com
-
-%Fortunately after only 1 'epoch'
-%you can often tell if you've made a bad choice.  The value of rho should lie
-%somewhere between 0.75 and 0.95.  I could automate this part but I'm lazy
-%and my code isn't designed to make such automation a natural thing to add.  Also
-%note that 'lambda' is being added to the normalized curvature matrix (i.e.
-%divided by the number of cases) while in the ICML paper I was adding it to
-%the unnormalized curvature matrix.  This doesn't make any real
-%difference to the optimization, but does make it somewhat easier to guage
-%lambda and set its initial value since it will be 'independent' of the
-%number of training cases in each mini-batch
+decay = 0.95;
 initlambda = 45.0;
 
 layersizes = [size(indata,1) layersizes size(outdata,1)];
@@ -115,10 +95,8 @@ end
 ch = zeros(psize, 1);
 
 lambda = initlambda;
-
 lambdarecord = zeros(maxIter,1);
 times = zeros(maxIter,1);
-
 totalpasses = 0;
 
 % initialization of params.
@@ -141,7 +119,6 @@ end
 function grad = calcu_grad(paramsp)
     [Wu, bu] = unpack(paramsp);
     y = cell(1, numlayers+1);
-    %ll = 0;
     %forward prop:
     y{1, 1} = indata(:, 1:numcases );
     yip1 =  y{1, 1} ;
@@ -168,21 +145,17 @@ function grad = calcu_grad(paramsp)
                 dEdxi = dEdyip1.*yip1.*(1-yip1);
             end
         else
-            dEdxi = outc - yip1; %simplified due to canonical link
+            dEdxi = outc - yip1;
         end
         dEdyi = Wu{i}'*dEdxi;
-
         yi = y{1, i};
-
         %standard gradient comp:
         dEdW{i} = dEdxi*yi';
         dEdb{i} = sum(dEdxi,2);
-
         dEdyip1 = dEdyi;
         yip1 = yi;
     end
     eval_g = eval_g + 1;
-
     % psize x 1
     grad = pack(dEdW, dEdb);
     grad = grad / numcases;
@@ -192,7 +165,6 @@ end
 
 outputString('================Training================')
 % Main part: train and test.
-
 m = size(paramsp,1);
 
 [ll, err] = computeLL(paramsp, indata, outdata);
@@ -210,12 +182,8 @@ outputString( '' );
 
 tic
 grad = calcu_grad(paramsp);
-
-
 for epoch = 1:maxIter
-
-    %-grad since we maximize the log likelihood.
-
+    % -grad since we maximize the log likelihood.
     step = 2;
     c = 10^(-2);
     j = 0;
@@ -225,20 +193,16 @@ for epoch = 1:maxIter
         if ll >= oldll + c*step*grad'*grad
             break;
         else
-            %disp('hi')
             step = 0.8*step;
             j = j + 1;
             [ll, err] = computeLL(paramsp + step*grad, indata, outdata);
         end
     end
-    
     fprintf('epoch: %d\t\n',epoch);
-    
     paramsp = paramsp + step*grad;
-    
     outputString( ['#backtracking: ' num2str(j) ', step size: ' num2str(step)] );
-    
     grad = calcu_grad(paramsp);
+    
     [ll, err] = computeLL(paramsp, indata, outdata);
     llrecord(epoch+1,1) = ll;
     errrecord(epoch+1,1) = err;
@@ -252,11 +216,8 @@ for epoch = 1:maxIter
     errrecord(epoch+1,2) = err_test;
     outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
     outputString( '' );
-
     times(epoch) = toc;
-    
 end
-
 outputString( ['Total time: ' num2str(sum(times)) ] );
 end
 
