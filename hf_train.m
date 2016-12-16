@@ -26,27 +26,6 @@ boost = 1/drop;
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
 
-% next try using autodamp = 0 for rho computation.  both for version 6 and
-% versions with rho and cg-backtrack computed on the training set
-% mattype = 'gn'; %Curvature matrix: Gauss-Newton.
-
-% IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
-% `maxiters' (harder).  Also, if your particular application is still not working the next 
-% most likely way to fix it is tweaking the variable `initcoeff' which controls
-% overall magnitude of the initial random weights.  Please don't treat this code like a black-box,
-% get a negative result, and then publish a paper about how the approach doesn't work :)  And if
-% you are running into difficulties feel free to e-mail me at james.martens@gmail.com
-
-%Fortunately after only 1 'epoch'
-%you can often tell if you've made a bad choice.  The value of rho should lie
-%somewhere between 0.75 and 0.95.  I could automate this part but I'm lazy
-%and my code isn't designed to make such automation a natural thing to add.  Also
-%note that 'lambda' is being added to the normalized curvature matrix (i.e.
-%divided by the number of cases) while in the ICML paper I was adding it to
-%the unnormalized curvature matrix.  This doesn't make any real
-%difference to the optimization, but does make it somewhat easier to guage
-%lambda and set its initial value since it will be 'independent' of the
-%number of training cases in each mini-batch
 initlambda = 45.0;
 
 layersizes = [size(indata,1) layersizes size(outdata,1)];
@@ -139,7 +118,6 @@ function GV = computeGV(V)
     GV = GV / numcases;
     GV = GV - weight_decay*(V);
     if and(autodamp, if_damping)
-%         fprintf('Auto-damping enabled! \n');
         GV = GV - lambda*V;
     end
 end
@@ -223,7 +201,6 @@ for epoch = 1:maxIter
     [Wu, bu] = unpack(paramsp);
     y = cell(1, numlayers+1);
     ll = 0;
-
     % ===> forward prop: compute activations and grads, as well as loss:
     y{1, 1} = indata(:, 1:numcases );
     yip1 =  y{1, 1} ;
@@ -257,7 +234,7 @@ for epoch = 1:maxIter
                 dEdxi = dEdyip1.*yip1.*(1-yip1);
             end
         else
-            dEdxi = outc - yip1; %simplified due to canonical link
+            dEdxi = outc - yip1;
         end
         dEdyi = Wu{i}'*dEdxi;
         yi = y{1, i};
@@ -283,7 +260,7 @@ for epoch = 1:maxIter
     oldll = ll;
 
     %slightly decay the previous change vector before using it as an
-    %initialization.  This is something I didn't mention in the paper.
+    %initialization.
     ch = decay*ch;
 
     %maxiters is the most important variable that you should try
@@ -293,7 +270,7 @@ for epoch = 1:maxIter
     miniters = 1;
 
     %TODO: preconditioning vector.  Feel free to experiment with this.
-%     precon = (grad2 + ones(psize,1)*lambda + weight_decay).^(3/4);
+    %precon = (grad2 + ones(psize,1)*lambda + weight_decay).^(3/4);
     precon = ones(psize,1);
     
     % ==> conjugate grad descent and back-tracking
@@ -397,3 +374,4 @@ end
 function v = vec(A)
     v = A(:);
 end
+%EOF.
