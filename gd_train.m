@@ -1,3 +1,4 @@
+% adaptive 1st-order method
 function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = gd_train(algorithm, maxIter, params, paramsinit)
 if strcmp(algorithm, 'gradient descent with backtracking')
     outputString( sprintf('================ %s Training for %d iters ================', algorithm, maxIter))
@@ -15,6 +16,7 @@ global eval_g;
 
 %standard L_2 weight-decay and params:
 weight_decay = params.weight_decay;
+
 layersizes = params.layersizes;
 layertypes = params.layertypes;
 indata = params.indata;
@@ -30,27 +32,6 @@ boost = 1/drop;
 % purposes of initializing the next run of CG.
 decay = 0.95; % Should be 0.95
 
-%next try using autodamp = 0 for rho computation.  both for version 6 and
-%versions with rho and cg-backtrack computed on the training set
-%mattype = 'gn'; %Curvature matrix: Gauss-Newton.
-
-% IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
-% `maxiters' (harder).  Also, if your particular application is still not working the next 
-% most likely way to fix it is tweaking the variable `initcoeff' which controls
-% overall magnitude of the initial random weights.  Please don't treat this code like a black-box,
-% get a negative result, and then publish a paper about how the approach doesn't work :)  And if
-% you are running into difficulties feel free to e-mail me at james.martens@gmail.com
-
-%Fortunately after only 1 'epoch'
-%you can often tell if you've made a bad choice.  The value of rho should lie
-%somewhere between 0.75 and 0.95.  I could automate this part but I'm lazy
-%and my code isn't designed to make such automation a natural thing to add.  Also
-%note that 'lambda' is being added to the normalized curvature matrix (i.e.
-%divided by the number of cases) while in the ICML paper I was adding it to
-%the unnormalized curvature matrix.  This doesn't make any real
-%difference to the optimization, but does make it somewhat easier to guage
-%lambda and set its initial value since it will be 'independent' of the
-%number of training cases in each mini-batch
 initlambda = 45.0;
 
 layersizes = [size(indata,1) layersizes size(outdata,1)];
@@ -91,7 +72,6 @@ end
 function [ll, err] = computeLL(params, in, out)
     [W,b] = unpack(params);
     schunk = size(in,2);
-    
     yi = in(:, 1:schunk );
     outc = out(:, 1:schunk );
     for i = 1:numlayers
@@ -102,10 +82,9 @@ function [ll, err] = computeLL(params, in, out)
             tmp = exp(xi);
             yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
         end
-%         err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
     end
     eval_f = eval_f + 1;
-    
+
     ll = 0;
     if strcmp( layertypes{numlayers}, 'softmax' )
         ll = sum(sum(outc.*log(yi)));
@@ -148,8 +127,6 @@ end
 function grad = calcu_grad(paramsp)
     [Wu, bu] = unpack(paramsp);
     y = cell(1, numlayers+1);
-    %ll = 0;
-    %forward prop:
     y{1, 1} = indata(:, 1:numcases );
     yip1 =  y{1, 1} ;
     dEdW = cell(numlayers, 1);
@@ -175,7 +152,7 @@ function grad = calcu_grad(paramsp)
                 dEdxi = dEdyip1.*yip1.*(1-yip1);
             end
         else
-            dEdxi = outc - yip1; %simplified due to canonical link
+            dEdxi = outc - yip1;
         end
         dEdyi = Wu{i}'*dEdxi;
 
@@ -197,7 +174,6 @@ function grad = calcu_grad(paramsp)
 end
 
 % Main part: train and test.
-
 switch algorithm
     case 'gradient descent'
         strategy = 1;
@@ -222,7 +198,6 @@ beta1 = 0.9;
 beta2 = 0.999;
 epsilon = 1e-8;
 
-
 m = size(paramsp,1);
 
 xoo = paramsp;
@@ -232,7 +207,6 @@ Eg2 = zeros(m,1);
 Et2 = zeros(m,1);
 mt = zeros(m,1);
 vt = zeros(m,1);
-
 
 [ll, err] = computeLL(paramsp, indata, outdata);
 llrecord(1,1) = ll;
@@ -250,18 +224,14 @@ outputString( '' );
 tic
 grad = calcu_grad(paramsp);
 
-
 for epoch = 1:maxIter
-
-    %-grad since we maximize the log likelihood.
+    % -grad since we maximize the log likelihood.
     [xn,v,mt,vt,diagG,Eg2,Et2] = gradupdate(strategy,-grad,paramsp,xoo,v,diagG,Eg2,Et2,...
         mt,vt,epoch,eta,gamma,beta1,beta2,epsilon);
-
     fprintf('epoch: %d\t\n',epoch);
-    
+
     xoo = paramsp;
     paramsp = xn;
-    
     grad = calcu_grad(paramsp);
     [ll, err] = computeLL(paramsp, indata, outdata);
     
@@ -273,16 +243,13 @@ for epoch = 1:maxIter
     outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
     [ll_test, err_test] = computeLL(paramsp, intest, outtest);
-
     llrecord(epoch+1,2) = ll_test;
     errrecord(epoch+1,2) = err_test;
     outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
     outputString( '' );
 
     times(epoch) = toc;
-    
 end
-
 outputString( ['Total time: ' num2str(sum(times)) ] );
 end
 
@@ -293,3 +260,4 @@ end
 function v = vec(A)
     v = A(:);
 end
+%EOF.
