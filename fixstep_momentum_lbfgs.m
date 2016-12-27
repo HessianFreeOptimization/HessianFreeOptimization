@@ -16,35 +16,7 @@ outdata = params.outdata;
 intest = params.intest;
 outtest = params.outtest;
 
-autodamp = 1;
-drop = 2/3;
-boost = 1/drop;
 
-% the amount to decay the previous search direction for the
-% purposes of initializing the next run of CG.
-decay = 0.95; % Should be 0.95
-
-%next try using autodamp = 0 for rho computation.  both for version 6 and
-%versions with rho and cg-backtrack computed on the training set
-%mattype = 'gn'; %Curvature matrix: Gauss-Newton.
-
-% IMPORTANT NOTES:  The most important variables to tweak are `initlambda' (easy) and
-% `maxiters' (harder).  Also, if your particular application is still not working the next 
-% most likely way to fix it is tweaking the variable `initcoeff' which controls
-% overall magnitude of the initial random weights.  Please don't treat this code like a black-box,
-% get a negative result, and then publish a paper about how the approach doesn't work :)  And if
-% you are running into difficulties feel free to e-mail me at james.martens@gmail.com
-
-%Fortunately after only 1 'epoch'
-%you can often tell if you've made a bad choice.  The value of rho should lie
-%somewhere between 0.75 and 0.95.  I could automate this part but I'm lazy
-%and my code isn't designed to make such automation a natural thing to add.  Also
-%note that 'lambda' is being added to the normalized curvature matrix (i.e.
-%divided by the number of cases) while in the ICML paper I was adding it to
-%the unnormalized curvature matrix.  This doesn't make any real
-%difference to the optimization, but does make it somewhat easier to guage
-%lambda and set its initial value since it will be 'independent' of the
-%number of training cases in each mini-batch
 initlambda = 45.0;
 
 layersizes = [size(indata,1) layersizes size(outdata,1)];
@@ -82,65 +54,6 @@ function [W,b] = unpack(M)
     end
 end
 
-%compute the vector-product with the Gauss-Newton matrix
-function GV = computeGV(V)
-    [VWu, Vbu] = unpack(V);
-
-    %application of R operator
-    rdEdy = cell(numlayers+1,1);
-    rdEdx = cell(numlayers, 1);
-    GVW = cell(numlayers,1);
-    GVb = cell(numlayers,1);
-    Rx = cell(numlayers,1);
-    Ry = cell(numlayers,1);
-    yip1 = y{1, 1};
-    %forward prop:
-    Ryip1 = zeros(layersizes(1), numcases);
-    for i = 1:numlayers
-        Ryi = Ryip1;
-        yi = yip1;
-        Rxi = Wu{i}*Ryi + VWu{i}*yi + repmat(Vbu{i}, [1 numcases]);
-        yip1 = y{1, i+1};
-        if strcmp(layertypes{i}, 'logistic')
-            Ryip1 = Rxi.*yip1.*(1-yip1);
-        elseif strcmp( layertypes{i}, 'softmax' )
-            Ryip1 = Rxi.*yip1 - yip1.* repmat( sum( Rxi.*yip1, 1 ), [layersizes(i+1) 1] );
-        end
-    end
-    eval_f = eval_f + 1;
-
-    %Backwards pass.  This is where things start to differ from computeHV
-    %note that the lower-case r notation doesn't really make sense.
-    for i = numlayers:-1:1
-        if i < numlayers
-            if strcmp(layertypes{i}, 'logistic')
-                rdEdx{i} = rdEdy{i+1}.*yip1.*(1-yip1);
-            end
-        else
-            %assume canonical link functions:
-            rdEdx{i} = -Ryip1;
-            if strcmp(layertypes{i}, 'linear')
-                rdEdx{i} = 2*rdEdx{i};
-            end
-        end
-        rdEdy{i} = Wu{i}'*rdEdx{i};
-        yi = y{1, i};
-        GVW{i} = rdEdx{i}*yi';
-        GVb{i} = sum(rdEdx{i},2);
-
-        yip1 = yi;
-    end
-    eval_g = eval_g + 1;
-    % psize x 1
-    GV = pack(GVW, GVb);
-    GV = GV / numcases;
-    GV = GV - weight_decay*(V);
-    if autodamp
-        GV = GV - lambda*V;
-    end
-end
-
-
 function [ll, err] = computeLL(params, in, out)
     [W,b] = unpack(params);
     schunk = size(in,2);
@@ -174,14 +87,10 @@ function [ll, err] = computeLL(params, in, out)
     ll = ll - 0.5*weight_decay*params'*params;
 end
 
-ch = zeros(psize, 1);
 
-lambda = initlambda;
-
-lambdarecord = zeros(maxIter,1);
 times = zeros(maxIter,1);
 
-totalpasses = 0;
+
 
 if nargin == 3
     % initialization of params.
@@ -257,19 +166,11 @@ outputString(sprintf('================ Start LBFGS Training for %d iters... ====
 
 eta = 0.01;
 gamma = 0.9;
-beta1 = 0.9;
-beta2 = 0.999;
-epsilon = 1e-8;
 
 m = size(paramsp,1);
 
-xoo = paramsp;
 v = zeros(m,1);
-diagG = zeros(m,1);
-Eg2 = zeros(m,1);
-Et2 = zeros(m,1);
-mt = zeros(m,1);
-vt = zeros(m,1);
+
 
 
 
@@ -286,14 +187,14 @@ errrecord(1,2) = err_test;
 outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
 outputString( '' );
 
-tic
+
 grad = calcu_grad(paramsp);
 
 lbfgs_m = 7;
 bfgs_s = [];
 bfgs_y = [];
 for epoch = 1:maxIter
-    
+    tic
     bfgs_q = -grad;
     bfgs_p = bfgs_q;
     if epoch ~= 1
@@ -322,8 +223,10 @@ for epoch = 1:maxIter
         v = gamma*v + eta*bfgs_p;
         paramsp = paramsp - v;
     else
+        outputString('hello world')
         outputString(['No momentum trial: ', num2str(params.trial)]);
-        paramsp = paramsp + eta*bfgs_p;
+        % +/- bug?
+        paramsp = paramsp - eta*bfgs_p;
     end
 
     [ll, err] = computeLL(paramsp, indata, outdata);
@@ -364,8 +267,6 @@ end
 outputString( ['Total time: ' num2str(sum(times)) ] );
 end
 
-
-% function required by 'hf'
 function outputString( s )
     fprintf( '%s\n', s );
 end
