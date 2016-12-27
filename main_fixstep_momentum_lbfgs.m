@@ -29,13 +29,13 @@ params.outtest = outtest(:, 1:1000);
 
 % training
 
-iters = 300;
-trials = 1;
+iters = 6000;
+trials = 10;
 
 global eval_f;
 global eval_g;
 
-isMomentum = false;
+isMomentum = true;
 records = cell(trials, 1);
 
 for trial = 1:trials
@@ -44,12 +44,13 @@ for trial = 1:trials
     global eval_g;
     eval_g = 0;
     params.trial = trial;
-    [llrecord, errrecord, weights, eval_fs, eval_gs] = fixstep_momentum_lbfgs(isMomentum,iters, params);
+    [llrecord, errrecord, weights, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(isMomentum,iters, params);
     records{trial}.llrecord = llrecord;
     records{trial}.errrecord = errrecord;
     records{trial}.weights = weights;
     records{trial}.eval_fs = eval_fs;
     records{trial}.eval_gs = eval_gs;
+    records{trial}.step_size = step_size;
 end
 
 if isMomentum

@@ -1,9 +1,10 @@
-function [llrecord, errrecord, paramsp, eval_fs, eval_gs] = fixstep_momentum_lbfgs(isMomentum, maxIter, params, paramsinit)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(isMomentum, maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
 eval_fs = zeros(maxIter+1,1);
 eval_gs = zeros(maxIter+1,1);
+step_size = zeros(maxIter,1);
 global eval_f;
 global eval_g;
 
@@ -16,8 +17,6 @@ outdata = params.outdata;
 intest = params.intest;
 outtest = params.outtest;
 
-
-initlambda = 45.0;
 
 layersizes = [size(indata,1) layersizes size(outdata,1)];
 numlayers = size(layersizes,2) - 1;
@@ -68,12 +67,9 @@ function [ll, err] = computeLL(params, in, out)
             tmp = exp(xi);
             yi = tmp./repmat( sum(tmp), [layersizes(i+1) 1] );   
         end
-%         err = err + weight_decay/2*sum(sum(W{i}.*W{i}));
     end
     eval_f = eval_f + 1;
-    
-    %err = err + double(sum(sum((yi - outc).^2, 1))) / size(in,2);
-    
+        
     ll = 0;
     if strcmp( layertypes{numlayers}, 'softmax' )
         ll = sum(sum(outc.*log(yi)));
@@ -87,10 +83,7 @@ function [ll, err] = computeLL(params, in, out)
     ll = ll - 0.5*weight_decay*params'*params;
 end
 
-
 times = zeros(maxIter,1);
-
-
 
 if nargin == 3
     % initialization of params.
@@ -164,21 +157,24 @@ end
 outputString(sprintf('================ Start LBFGS Training for %d iters... ================', maxIter))
 % Main part: train and test.
 
-eta = 0.01;
+if isMomentum
+    eta = 0.01;
+else
+    eta = 0.1;
+end
+
 gamma = 0.9;
 
 m = size(paramsp,1);
-
 v = zeros(m,1);
-
-
-
 
 [ll, err] = computeLL(paramsp, indata, outdata);
 llrecord(1,1) = ll;
 errrecord(1,1) = err;
 eval_gs(1,1) = eval_g;
 eval_fs(1,1) = eval_f;
+step_size(1,1) = 0;
+
 outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
 [ll_test, err_test] = computeLL(paramsp, intest, outtest);
@@ -186,7 +182,6 @@ llrecord(1,2) = ll_test;
 errrecord(1,2) = err_test;
 outputString( ['Test Log likelihood: ' num2str(ll_test) ', error rate: ' num2str(err_test)] );
 outputString( '' );
-
 
 grad = calcu_grad(paramsp);
 
@@ -211,32 +206,24 @@ for epoch = 1:maxIter
         end
     end
     
-    
-    %isMomentum = true;
-    if isMomentum
-        outputString(['Momentum trial: ', num2str(params.trial)]);
-        %[xn,v,mt,vt,diagG,Eg2,Et2] = gradupdate(2,bfgs_p,paramsp,xoo,v,diagG,Eg2,Et2,...
-        %    mt,vt,epoch,eta,gamma,beta1,beta2,epsilon);
-        %xoo = paramsp;
-        %paramsp = xn;
-        
+    if isMomentum % momentum lbfgs
+        outputString(['Momentum trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
         v = gamma*v + eta*bfgs_p;
         paramsp = paramsp - v;
-    else
-        outputString('hello world')
-        outputString(['No momentum trial: ', num2str(params.trial)]);
+    else % fixstep lbfgs
+        outputString(['Fixstep trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
         % +/- bug?
-        paramsp = paramsp - eta*bfgs_p;
+        v = eta*bfgs_p;
+        paramsp = paramsp - v;
     end
 
     [ll, err] = computeLL(paramsp, indata, outdata);
     
-    bfgs_s = [bfgs_s, eta*bfgs_p];
+    bfgs_s = [bfgs_s, v];
     
     gradold = grad;
     grad = calcu_grad(paramsp);
-    fprintf('epoch: %d\t\n',epoch);
-    outputString( ['no backtracking, step size: ' num2str(eta)] );
+    outputString( ['No backtracking, step size: ' num2str(eta)] );
 
     bfgs_y = [bfgs_y, grad - gradold];
 
@@ -250,9 +237,9 @@ for epoch = 1:maxIter
     errrecord(epoch+1,1) = err;
     eval_gs(epoch+1,1) = eval_g;
     eval_fs(epoch+1,1) = eval_f;
+    step_size(epoch+1,1) = norm(v);
     outputString( ['Train Log likelihood: ' num2str(ll) ', error rate: ' num2str(err)] );
 
-    %[ll_test, err_test] = computeLL(paramsp + step*bfgs_p, intest, outtest);
     [ll_test, err_test] = computeLL(paramsp, intest, outtest);
 
     llrecord(epoch+1,2) = ll_test;
@@ -263,14 +250,14 @@ for epoch = 1:maxIter
     times(epoch) = toc;
 end
 
-
 outputString( ['Total time: ' num2str(sum(times)) ] );
 end
 
-function outputString( s )
+function outputString(s)
     fprintf( '%s\n', s );
 end
 
 function v = vec(A)
     v = A(:);
 end
+% EOF.
