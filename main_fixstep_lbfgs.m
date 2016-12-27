@@ -41,7 +41,7 @@ for trial = 1:trials
     global eval_g;
     eval_g = 0;
     params.trial = trial;
-    [llrecord, errrecord, weights, eval_fs, eval_gs] = fixstep_lbfgs(iters, params);
+    [llrecord, errrecord, weights, eval_fs, eval_gs] = fixstep_momentum_lbfgs(false,iters, params);
     records{trial}.llrecord = llrecord;
     records{trial}.errrecord = errrecord;
     records{trial}.weights = weights;
