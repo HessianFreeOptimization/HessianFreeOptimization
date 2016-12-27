@@ -1,93 +1,113 @@
-close all; clear all; clc;
-%%
-close all; clc;
-fig1 = figure(1);
-fig1.Position = [100, 100, 400, 300];
-fig2 = figure(2);
-fig2.Position = [100, 100, 400, 300];
-algorithms = {'gradient descent', 'gradient descent with backtracking', 'momentum', 'nesterov accelerated gradient',...
-    'adagrad','RMSprop','adadelta','adam',...
-    'lbfgs', 'hessian-free', 'lbfgs-mom', ...
-    'hessian-free-Damp-BT', 'hessian-free-Damp-noBT', 'hessian-free-noDamp-BT', 'hessian-free-noDamp-noBT'};
-algorithms_names = {'gradient descent', 'gradient descent with backtracking', 'gradient descent with momentum', 'Nesterov accelerated gradient descent',...
-    'AdaGrad','RMSprop','AdaDelta','Adam',...
-    'L-BFGS', 'Hessian-free', 'L-BFHS with momentum', ...
-    'Hessian-free(Damp, BT)', 'Hessian-free(Damp, noBT)', 'Hessian-free(noDamp, BT)', 'Hessian-free(noDamp, noBT)'};
-lines =  {'-', '-', '-', ...
-    '-', '-', '-', '-', '-', ...
-    '--', '--', '--', ...
-    '--', '--', '--', '--'};
-trials = [10, 5, 5, 5, ...
-    5, 5, 5, 5, ...
-    20, 5, 1, ...
-    1, 1, 1, 1];
+close all; clear; clc;
+
+fig = figure('color',[1 1 1]);
+fig.Position = [1800,10,1000,400];
+% fig1 = figure(1);
+% fig1.Position = [100, 100, 400, 300];
+% fig2 = figure(2);
+% fig2.Position = [100, 100, 400, 300];
+algorithms = {'gradient descent', 'fixstep-lbfgs', 'momentum-lbfgs'};
+algorithms_names = {'gradient descent', 'fixstep L-BFGS', 'momentum L-BFGS'};
+lines =  {'-', '--', '--'};
+trials = [1,10,10];
 base_iters = 6000;
-iters = [base_iters, base_iters, base_iters, base_iters, ...
-    base_iters, base_iters, base_iters, base_iters, ...
-    base_iters, base_iters, 1000, ...
-    base_iters, base_iters, base_iters, base_iters];
+iters = [base_iters, base_iters, base_iters];
 max1 = 0;
 min1 = Inf;
 algorithms_plot = {};
-algorithms_plot_count = 0;
+
 plots1 = [];
 plots2 = [];
 colors = distinguishable_colors(length(algorithms));
 
-labelx = 'epoch'; labelx_ind = 1;
-
-selected = [12, 13, 14, 15];
+selected = [2, 3];
 
 for index = 1 : length(selected)
     al_iter = selected(index);
     algorithm = algorithms{al_iter};
-    file_name = sprintf('./saved/single_%s-for-%d_iters-%d_trials.mat', algorithm, iters(al_iter), trials(al_iter));
-    if exist(file_name, 'file') == 2
-        load(file_name);
-        file_name
-        records{1}.eval_cg
-        [max1, min1, plots1, plots2] = plot_curve(false, false, records, fig1, fig2, max1, min1, plots1, plots2, colors(al_iter, :), lines{al_iter}, labelx_ind);
+    file_name = sprintf('./saved/%s-for-%d_iters-%d_trials.mat', algorithm, iters(al_iter), trials(al_iter));
+    %if exist(file_name, 'file') == 2
+    load(file_name);
+    
+    
+    for i = 1:trials(al_iter)
+        ll = -records{i,1}.llrecord(:,1);
+        %trial_curve = plot(ll, 'Color', colors(al_iter,:), 'LineWidth', 1);
+        min1 = min(min1,min(ll));
+        %hold on;
     end
 end
 
+subplot(1,2,1);
+alpha = 0.3;
+
 for index = 1 : length(selected)
     al_iter = selected(index);
     algorithm = algorithms{al_iter};
-    file_name = sprintf('./saved/single_%s-for-%d_iters-%d_trials.mat', algorithm, iters(al_iter), trials(al_iter));
+    file_name = sprintf('./saved/%s-for-%d_iters-%d_trials.mat', algorithm, iters(al_iter), trials(al_iter));
+
+    load(file_name);
+    
+    llrecord_mean = zeros(size(records{1,1}.llrecord(:,1)));
+    
+    %subplot(1,2,1);
+    for i = 1:trials(al_iter)
+        ll = -records{i}.llrecord(:,1) - min1;
+        trial_curve = semilogy(0:iters(al_iter), ll, 'Color', colors(al_iter,:), 'LineWidth', 1);
+        trial_curve.LineStyle = '-';
+        trial_curve.Color(4) = alpha;
+        %min1 = min(min1,min(ll));
+        hold on;
+        llrecord_mean = llrecord_mean + records{i,1}.llrecord(:,1);
+    end
+    llrecord_mean = -llrecord_mean/trials(al_iter);
+    trial_curve = semilogy(0:iters(al_iter), ll, 'Color', colors(al_iter,:), 'LineWidth', 2.5);
+    trial_curve.LineStyle = '--';
+    plots1 = [plots1, trial_curve];
+    algorithms_plot = [algorithms_plot, algorithms_names(al_iter)];
+end
+
+
+%
+
+grid on;
+hLegend = legend(plots1, algorithms_plot);
+set(hLegend.BoxFace, 'ColorType','truecoloralpha', 'ColorData',uint8(255*[1;1;1;.5]));
+xlabel('epoch');
+ylabel('$f - \hat{f^*}$', 'Interpreter','LaTex');
+
+%%
+
+for index = 1 : length(selected)
+    al_iter = selected(index);
+    algorithm = algorithms{al_iter};
+    file_name = sprintf('./saved/%s-for-%d_iters-%d_trials.mat', algorithm, iters(al_iter), trials(al_iter));
     if exist(file_name, 'file') == 2
         load(file_name);
-        [max1, min1, plots1, plots2] = plot_curve(true, false, records, fig1, fig2, max1, min1, plots1, plots2, colors(al_iter, :), lines{al_iter}, labelx_ind);
+        [max1, plots1, plots2] = plot_curve(true, false, false, records, fig1, fig2, max1, Inf, plots1, plots2, colors(al_iter, :), lines{al_iter}, 1);
         hold on;
         algorithms_plot_count = algorithms_plot_count + 1;
         algorithms_plot{algorithms_plot_count} = algorithms_names{al_iter};
     end
 end
 
+
+
+
 figure(1);
 grid on;
 hLegend = legend(plots1, algorithms_plot);
 set(hLegend.BoxFace, 'ColorType','truecoloralpha', 'ColorData',uint8(255*[1;1;1;.5]));
-
-xlabel(labelx);
+xlabel('epoch');
 ylabel('$f - \hat{f^*}$', 'Interpreter','LaTex');
-switch labelx_ind
-    case 2
-        xlim([0 1.6e5]);
-    case 3
-        xlim([0 1.2e5]);
-end
+
 
 figure(2);
 grid on;
 hLegend = legend(plots2, algorithms_plot);
 set(hLegend.BoxFace, 'ColorType','truecoloralpha', 'ColorData',uint8(255*[1;1;1;.5]));
 ylim([0 1]);
-switch labelx_ind
-    case 2
-        xlim([0 1.6e5]);
-    case 3
-        xlim([0 1.2e5]);
-end
-xlabel(labelx);
+
+xlabel('epoch');
 ylabel('classification error');
 %EOF.
