@@ -1,4 +1,4 @@
-function [llrecord, errrecord, paramsp, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(isMomentum, maxIter, params, paramsinit)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(isMomentum, eta, maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -85,7 +85,7 @@ end
 
 times = zeros(maxIter,1);
 
-if nargin == 3
+if nargin == 4
     % initialization of params.
     paramsp = zeros(psize,1);
     [Wtmp,btmp] = unpack(paramsp);
@@ -157,11 +157,11 @@ end
 outputString(sprintf('================ Start LBFGS Training for %d iters... ================', maxIter))
 % Main part: train and test.
 
-if isMomentum
-    eta = 0.01;
-else
-    eta = 0.1;
-end
+% if isMomentum
+%     eta = 0.01;
+% else
+%     eta = 0.01;
+% end
 
 gamma = 0.9;
 
@@ -260,4 +260,4 @@ end
 function v = vec(A)
     v = A(:);
 end
-% EOF.
+%EOF.

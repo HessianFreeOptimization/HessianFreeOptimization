@@ -1,10 +1,10 @@
 clc; clear; close all;
 % network structure
 % TODO:
-%params.layersizes = [100 30];
-params.layersizes = [30];
-%params.layertypes = {'logistic', 'logistic', 'softmax'};
-params.layertypes = {'logistic', 'softmax'};
+params.layersizes = [200 100 30];
+%params.layersizes = [30];
+params.layertypes = {'logistic', 'logistic', 'logistic', 'softmax'};
+%params.layertypes = {'logistic', 'softmax'};
 params.weight_decay = 2e-4;
 
 % load datasets.
@@ -35,7 +35,11 @@ trials = 10;
 global eval_f;
 global eval_g;
 
-isMomentum = true;
+isMomentum = false;
+
+
+
+for eta = [0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 records = cell(trials, 1);
 
 for trial = 1:trials
@@ -44,7 +48,7 @@ for trial = 1:trials
     global eval_g;
     eval_g = 0;
     params.trial = trial;
-    [llrecord, errrecord, weights, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(isMomentum,iters, params);
+    [llrecord, errrecord, weights, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(isMomentum, eta, iters, params);
     records{trial}.llrecord = llrecord;
     records{trial}.errrecord = errrecord;
     records{trial}.weights = weights;
@@ -54,7 +58,10 @@ for trial = 1:trials
 end
 
 if isMomentum
-    save(sprintf('./saved/momentum-lbfgs-for-%d_iters-%d_trials.mat', iters, trials), 'records');
+    save(sprintf('./saved/momentum-lbfgs-for-%d_iters-%d_trials-%.4f_eta.mat', iters, trials, eta), 'records');
 else
-    save(sprintf('./saved/fixstep-lbfgs-for-%d_iters-%d_trials.mat', iters, trials), 'records');
+    save(sprintf('./saved/fixstep-lbfgs-for-%d_iters-%d_trials-%.4f_eta.mat', iters, trials, eta), 'records');
 end
+end
+
+%EOF.
