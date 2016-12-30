@@ -1,4 +1,4 @@
-function [llrecord, errrecord, paramsp, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(isMomentum, eta, maxIter, params, paramsinit)
+function [llrecord, errrecord, paramsp, eval_fs, eval_gs, step_size] = fixstep_momentum_lbfgs(algorithm, eta, maxIter, params, paramsinit)
 % variables
 llrecord = zeros(maxIter+1,2);
 errrecord = zeros(maxIter+1,2);
@@ -21,7 +21,7 @@ outtest = params.outtest;
 layersizes = [size(indata,1) layersizes size(outdata,1)];
 numlayers = size(layersizes,2) - 1;
 
-[indims numcases] = size(indata);
+[indims, numcases] = size(indata);
 outputString(['input size:' num2str(indims) 'x' num2str(numcases)])
 
 y = cell(1, numlayers+1);
@@ -153,16 +153,8 @@ function grad = calcu_grad(paramsp)
     grad = grad - weight_decay*(paramsp);
 end
 
-
-outputString(sprintf('================ Start LBFGS Training for %d iters... ================', maxIter))
+outputString(sprintf('================ Start Training for %d iters... ================', maxIter))
 % Main part: train and test.
-
-% if isMomentum
-%     eta = 0.01;
-% else
-%     eta = 0.01;
-% end
-
 gamma = 0.9;
 
 m = size(paramsp,1);
@@ -206,14 +198,20 @@ for epoch = 1:maxIter
         end
     end
     
-    if isMomentum % momentum lbfgs
-        outputString(['Momentum trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
-        v = gamma*v + eta*bfgs_p;
+    %if isMomentum % momentum lbfgs
+    if strcmp(algorithm, 'gradient descent')
+        % backtracking...
+        outputString(['GD w/ backtracking, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
+        v = -eta*grad;
         paramsp = paramsp - v;
-    else % fixstep lbfgs
-        outputString(['Fixstep trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
+    elseif strcmp(algorithm, 'fixstep-lbfgs') % fixstep lbfgs
+        outputString(['Fixstep L-BFGS, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
         % +/- bug?
         v = eta*bfgs_p;
+        paramsp = paramsp - v;
+    elseif strcmp(algorithm, 'momentum-lbfgs')
+        outputString(['Momentum L-BFGS, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
+        v = gamma*v + eta*bfgs_p;
         paramsp = paramsp - v;
     end
 
