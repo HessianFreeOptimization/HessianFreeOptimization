@@ -244,7 +244,7 @@ for epoch = 1:maxIter
     elseif strcmp(algorithm, 'momentum-lbfgs')
         outputString(['Momentum L-BFGS, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
         v = gamma*v + eta*bfgs_p;
-        paramsp = paramsp - v;
+        paramsp = paramsp + v;
         outputString( ['No backtracking, step size: ' num2str(eta)] );
     end
 

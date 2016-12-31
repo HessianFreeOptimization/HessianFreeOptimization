@@ -34,7 +34,7 @@ global eval_f;
 global eval_g;
 
 algorithms = {'gradient descent', 'fixstep-lbfgs', 'momentum-lbfgs', 'lbfgs'};
-algorithm = algorithms{2};
+algorithm = algorithms{3};
 
 %for eta = [0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 for eta = [0.001, 0.01, 0.1]
@@ -43,10 +43,10 @@ for eta = [0.001, 0.01, 0.1]
         logfile = sprintf('./saved/gd-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
     elseif strcmp(algorithm, 'fixstep-lbfgs')
         logfile = sprintf('./saved/fixstep-lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
-    elseif strcmp(algorithm, 'lbfgs')
-        logfile = sprintf('./saved/lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
     elseif strcmp(algorithm, 'momentum-lbfgs')
         logfile = sprintf('./saved/momentum-lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
+    elseif strcmp(algorithm, 'lbfgs')
+        logfile = sprintf('./saved/lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
     end
     fid = fopen(logfile, 'w');
     for trial = 1:trials
