@@ -20,31 +20,31 @@ outtest = zeros(10,size(intest,2));
 for i = 1:10
 	outtest(i,:) = (yt == i);
 end
-params.indata = indata(:, 1:20000);
-params.outdata = outdata(:, 1:20000);
-params.intest = intest(:, 1:10000);
-params.outtest = outtest(:, 1:10000);
+params.indata = indata(:, 1:5000);
+params.outdata = outdata(:, 1:5000);
+params.intest = intest(:, 1:5000);
+params.outtest = outtest(:, 1:5000);
 
 % training
-% iters = 6000;
+% iters = 5000;
 % trials = 10;
-iters = 6000;
+iters = 5000;
 trials = 10;
 global eval_f;
 global eval_g;
 
 algorithms = {'gradient descent', 'fixstep-lbfgs', 'momentum-lbfgs', 'lbfgs'};
-algorithm = algorithms{1};
+algorithm = algorithms{2};
 
 %for eta = [0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-for eta = 1
+for eta = [0.001, 0.01, 0.1]
     records = cell(trials, 1);
     if strcmp(algorithm, 'gradient descent')
         logfile = sprintf('./saved/gd-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
-    elseif strcmp(algorithm, 'lbfgs')
-        logfile = sprintf('./saved/lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
     elseif strcmp(algorithm, 'fixstep-lbfgs')
         logfile = sprintf('./saved/fixstep-lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
+    elseif strcmp(algorithm, 'lbfgs')
+        logfile = sprintf('./saved/lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
     elseif strcmp(algorithm, 'momentum-lbfgs')
         logfile = sprintf('./saved/momentum-lbfgs-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);
     end
@@ -64,12 +64,12 @@ for eta = 1
     fclose(fid);
     if strcmp(algorithm, 'gradient descent')
         save(sprintf('./saved/gd-for-%d_iters-%d_trials-%.4f_eta.mat', iters, trials, eta), 'records');
-    elseif strcmp(algorithm, 'lbfgs')
-        save(sprintf('./saved/lbfgs-for-%d_iters-%d_trials-%.4f_eta.mat', iters, trials, eta), 'records');
     elseif strcmp(algorithm, 'fixstep-lbfgs')
         save(sprintf('./saved/fixstep-lbfgs-for-%d_iters-%d_trials-%.4f_eta.mat', iters, trials, eta), 'records');
     elseif strcmp(algorithm, 'momentum-lbfgs')
         save(sprintf('./saved/momentum-lbfgs-for-%d_iters-%d_trials-%.4f_eta.mat', iters, trials, eta), 'records');
+    elseif strcmp(algorithm, 'lbfgs')
+        save(sprintf('./saved/lbfgs-for-%d_iters-%d_trials-%.4f_eta.mat', iters, trials, eta), 'records');
     end
 end
 

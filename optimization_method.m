@@ -197,8 +197,10 @@ bfgs_y = [];
 
 for epoch = 1:maxIter
     tic
+    
     bfgs_q = -grad;
     bfgs_p = bfgs_q;
+    
     if epoch ~= 1
         alpha = zeros(1,lbfgs_m);
         for i = size(bfgs_s,2):-1:1
@@ -236,9 +238,8 @@ for epoch = 1:maxIter
         outputString( ['# Backtracking: ' num2str(j) ', step size: ' num2str(step)] );
     elseif strcmp(algorithm, 'fixstep-lbfgs') % fixstep lbfgs
         outputString(['Fixstep L-BFGS, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
-        % +/- bug?
         v = eta*bfgs_p;
-        paramsp = paramsp - v;
+        paramsp = paramsp + v;
         outputString( ['No backtracking, step size: ' num2str(eta)] );
     elseif strcmp(algorithm, 'momentum-lbfgs')
         outputString(['Momentum L-BFGS, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
