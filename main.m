@@ -34,10 +34,10 @@ global eval_f;
 global eval_g;
 
 algorithms = {'gradient descent', 'fixstep-lbfgs', 'momentum-lbfgs', 'lbfgs'};
-algorithm = algorithms{3};
+algorithm = algorithms{4};
 
 %for eta = [0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
-for eta = [0.001, 0.01, 0.1]
+for eta = 1
     records = cell(trials, 1);
     if strcmp(algorithm, 'gradient descent')
         logfile = sprintf('./saved/gd-for-%d_iters-%d_trials-%.4f_eta.log', iters, trials, eta);

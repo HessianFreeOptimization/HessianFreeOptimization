@@ -235,6 +235,7 @@ for epoch = 1:maxIter
             end
         end
         paramsp = paramsp + step*v;
+        v = step*v;
         outputString( ['# Backtracking: ' num2str(j) ', step size: ' num2str(step)] );
     elseif strcmp(algorithm, 'fixstep-lbfgs') % fixstep lbfgs
         outputString(['Fixstep L-BFGS, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
@@ -246,6 +247,26 @@ for epoch = 1:maxIter
         v = gamma*v + eta*bfgs_p;
         paramsp = paramsp + v;
         outputString( ['No backtracking, step size: ' num2str(eta)] );
+    elseif strcmp(algorithm, 'lbfgs')
+        outputString(['L-BFGS, trial: ', num2str(params.trial), ', epoch: ',num2str(epoch)]);
+        
+        step = eta;
+        j = 0;
+        oldll = ll;
+        [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
+        while j < 60
+            if -ll <= -oldll + 0.01*step*grad'*bfgs_p
+                break;
+            else
+                step = 0.8*step;
+                j = j + 1;
+                [ll, err] = computeLL(paramsp + step*bfgs_p, indata, outdata);
+            end
+        end
+        
+        paramsp = paramsp + step*bfgs_p;
+        v = step*bfgs_p;
+        outputString( ['# Backtracking: ' num2str(j) ', step size: ' num2str(step)] );
     end
 
     [ll, err] = computeLL(paramsp, indata, outdata);
